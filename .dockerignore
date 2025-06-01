@@ -1,8 +1,0 @@
-.git
-.gradle
-.idea
-build
-minio_data
-postgres_data
-.env
-*.iml
