@@ -58,3 +58,38 @@ dependencies {
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
+kotlin {
+    compilerOptions {
+        freeCompilerArgs.addAll("-Xjsr305=strict")
+    }
+}
+
+allOpen {
+    annotation("jakarta.persistence.Entity")
+    annotation("jakarta.persistence.MappedSuperclass")
+    annotation("jakarta.persistence.Embeddable")
+}
+
+tasks.withType<Test> {
+    useJUnitPlatform()
+}
+
+val compileKotlinTask = tasks.named("compileKotlin")
+val tempBuildDir = providers.provider {
+    file(System.getenv("BLOG_BACKEND_ASCII_BUILD_DIR") ?: "${System.getenv("TEMP") ?: layout.buildDirectory.get().asFile.absolutePath}/blog-backend-build")
+}
+val javacKotlinClassesDir = providers.provider {
+    tempBuildDir.get().resolve("kotlin-main-classes")
+}
+
+val syncKotlinClassesForJavac = tasks.register<Sync>("syncKotlinClassesForJavac") {
+    dependsOn(compileKotlinTask)
+    from(compileKotlinTask.map { it.outputs.files })
+    into(javacKotlinClassesDir)
+}
+
+tasks.named<JavaCompile>("compileJava") {
+    dependsOn(syncKotlinClassesForJavac)
+    classpath = files(javacKotlinClassesDir) + configurations.compileClasspath.get()
+    options.isIncremental = false
+}
