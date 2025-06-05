@@ -93,3 +93,32 @@ tasks.named<JavaCompile>("compileJava") {
     classpath = files(javacKotlinClassesDir) + configurations.compileClasspath.get()
     options.isIncremental = false
 }
+
+val mainRuntimeClassesDir = providers.provider {
+    tempBuildDir.get().resolve("main-runtime-classes")
+}
+val testRuntimeClassesDir = providers.provider {
+    tempBuildDir.get().resolve("test-runtime-classes")
+}
+
+val syncMainClassesForTestRuntime = tasks.register<Sync>("syncMainClassesForTestRuntime") {
+    dependsOn(tasks.named("classes"))
+    from(layout.buildDirectory.dir("classes/kotlin/main"))
+    from(layout.buildDirectory.dir("classes/java/main"))
+    from(layout.buildDirectory.dir("resources/main"))
+    into(mainRuntimeClassesDir)
+}
+
+val syncTestClassesForTestRuntime = tasks.register<Sync>("syncTestClassesForTestRuntime") {
+    dependsOn(tasks.named("testClasses"))
+    from(layout.buildDirectory.dir("classes/kotlin/test"))
+    from(layout.buildDirectory.dir("classes/java/test"))
+    from(layout.buildDirectory.dir("resources/test"))
+    into(testRuntimeClassesDir)
+}
+
+tasks.withType<Test> {
+    dependsOn(syncMainClassesForTestRuntime, syncTestClassesForTestRuntime)
+    testClassesDirs = files(testRuntimeClassesDir)
+    classpath = files(testRuntimeClassesDir, mainRuntimeClassesDir) + classpath
+}
