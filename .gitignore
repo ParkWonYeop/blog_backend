@@ -20,3 +20,31 @@ bin/
 !**/src/test/**/bin/
 
 ### IntelliJ IDEA ###
+.idea
+*.iws
+*.iml
+*.ipr
+out/
+!**/src/main/**/out/
+!**/src/test/**/out/
+
+### NetBeans ###
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+
+### VS Code ###
+.vscode/
+
+### Kotlin ###
+.kotlin
+
+### Python ###
+__pycache__/
+*.py[cod]
+
+### Docker data ###
+postgres_data/
+minio_data/
