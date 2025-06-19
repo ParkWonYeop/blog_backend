@@ -22,3 +22,27 @@ class Member(
     @Column(nullable = false)
     val nickname: String,
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    val role: Role,
+
+    isVerified: Boolean = false
+) : BaseTimeEntity() {
+
+    @Column(nullable = false)
+    var isVerified: Boolean = isVerified
+        protected set
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    val id: Long? = null
+
+    fun verify() {
+        this.isVerified = true
+    }
+}
+
+enum class Role {
+    ROLE_USER,
+    ROLE_ADMIN
+}
