@@ -23,3 +23,28 @@ class Category(
     var name: String = name
         protected set
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "parent_id")
+    var parent: Category? = parent
+        protected set
+
+    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+    val id: Long? = null
+
+    fun addChild(child: Category) {
+        this.children.add(child)
+        child.parent = this
+    }
+
+    fun updateName(name: String) {
+        this.name = name
+    }
+
+    fun changeParent(newParent: Category?) {
+        this.parent?.children?.remove(this)
+
+        this.parent = newParent
+
+        newParent?.children?.add(this)
+    }
+}
