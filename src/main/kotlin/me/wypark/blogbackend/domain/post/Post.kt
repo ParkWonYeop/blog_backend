@@ -36,3 +36,43 @@ class Post(
     var title: String = title
         protected set
 
+    @Column(columnDefinition = "TEXT", nullable = false)
+    var content: String = content
+        protected set
+
+    @Column(nullable = false, unique = true)
+    var slug: String = slug
+        protected set
+
+    @Column(nullable = false)
+    var viewCount: Long = viewCount
+        protected set
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "category_id")
+    var category: Category? = category
+        protected set
+
+    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+    val id: Long? = null
+
+    fun increaseViewCount() {
+        this.viewCount++
+    }
+
+    fun addTags(postTags: List<PostTag>) {
+        this.tags.addAll(postTags)
+    }
+
+    fun update(title: String, content: String, slug: String, category: Category?) {
+        this.title = title
+        this.content = content
+        this.slug = slug
+        this.category = category
+    }
+
+    fun updateTags(newTags: List<PostTag>) {
+        this.tags.clear()
+        this.tags.addAll(newTags)
+    }
+}
