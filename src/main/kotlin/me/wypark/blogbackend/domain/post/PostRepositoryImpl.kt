@@ -29,3 +29,30 @@ class PostRepositoryImpl(
             .and(inCategoryNames(categoryNames))
             .and(eqTagName(tagName))
 
+        val query = queryFactory
+            .select(
+                Projections.constructor(
+                    PostSummary::class.java,
+                    post.id,
+                    post.title,
+                    post.slug,
+                    category.name,
+                    post.viewCount,
+                    post.createdAt,
+                    post.updatedAt,
+                    post.content
+                )
+            )
+            .from(post)
+            .leftJoin(post.category, category)
+            .leftJoin(post.tags, postTag)
+            .leftJoin(postTag.tag, tag)
+            .where(predicate)
+            .distinct()
+            .offset(pageable.offset)
+            .limit(pageable.pageSize.toLong())
+
+        query.orderBy(*orderSpecifiers(pageable).toTypedArray())
+
+        val content = query.fetch()
+
