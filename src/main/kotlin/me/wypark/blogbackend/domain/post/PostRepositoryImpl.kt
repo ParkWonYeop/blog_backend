@@ -56,3 +56,39 @@ class PostRepositoryImpl(
 
         val content = query.fetch()
 
+        val total = queryFactory
+            .select(post.countDistinct())
+            .from(post)
+            .leftJoin(post.category, category)
+            .leftJoin(post.tags, postTag)
+            .leftJoin(postTag.tag, tag)
+            .where(predicate)
+            .fetchOne() ?: 0L
+
+        return PageImpl(content, pageable, total)
+    }
+
+    private fun containsKeyword(keyword: String?): BooleanExpression? {
+        if (keyword.isNullOrBlank()) return null
+        return post.title.containsIgnoreCase(keyword)
+            .or(post.content.containsIgnoreCase(keyword))
+    }
+
+    private fun inCategoryNames(categoryNames: List<String>?): BooleanExpression? {
+        if (categoryNames.isNullOrEmpty()) return null
+
+        val hasUncategorized = categoryNames.any(::isUncategorized)
+        val normalNames = categoryNames.filterNot(::isUncategorized)
+
+        var expression: BooleanExpression? = null
+
+        if (normalNames.isNotEmpty()) {
+            expression = category.name.`in`(normalNames)
+        }
+
+        if (hasUncategorized) {
+            expression = if (expression != null) {
+                expression.or(post.category.isNull)
+            } else {
+                post.category.isNull
+            }
