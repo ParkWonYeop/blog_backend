@@ -92,3 +92,33 @@ class PostRepositoryImpl(
             } else {
                 post.category.isNull
             }
+        }
+
+        return expression
+    }
+
+    private fun eqTagName(tagName: String?): BooleanExpression? {
+        if (tagName.isNullOrBlank()) return null
+        return tag.name.eq(tagName)
+    }
+
+    private fun orderSpecifiers(pageable: Pageable): List<OrderSpecifier<*>> {
+        return pageable.sort.map { order ->
+            val direction = if (order.isAscending) Order.ASC else Order.DESC
+            when (order.property) {
+                "viewCount" -> OrderSpecifier(direction, post.viewCount)
+                "createdAt" -> OrderSpecifier(direction, post.createdAt)
+                "id" -> OrderSpecifier(direction, post.id)
+                else -> OrderSpecifier(Order.DESC, post.id)
+            }
+        }.toList()
+    }
+
+    private fun isUncategorized(name: String): Boolean {
+        return UNCATEGORIZED_NAMES.any { it.equals(name, ignoreCase = true) }
+    }
+
+    companion object {
+        private val UNCATEGORIZED_NAMES = setOf("uncategorized", "미분류")
+    }
+}
