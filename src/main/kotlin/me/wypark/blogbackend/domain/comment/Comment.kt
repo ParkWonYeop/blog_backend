@@ -29,3 +29,33 @@ class Comment(
     val children: MutableList<Comment> = mutableListOf(),
 
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "member_id")
+    val member: Member? = null,
+
+    @Column
+    val guestNickname: String? = null,
+
+    @Column
+    val guestPassword: String? = null
+
+) : BaseTimeEntity() {
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "parent_id")
+    var parent: Comment? = parent
+        protected set
+
+    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+    val id: Long? = null
+
+    fun getAuthorName(): String {
+        return member?.nickname ?: guestNickname ?: "알 수 없음"
+    }
+
+    fun addReply(reply: Comment) {
+        children.add(reply)
+        reply.parent = this
+    }
+
+    }
