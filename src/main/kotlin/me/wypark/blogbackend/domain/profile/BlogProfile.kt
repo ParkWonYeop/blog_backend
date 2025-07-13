@@ -22,3 +22,31 @@ class BlogProfile(
     var name: String = name
         protected set
 
+    @Column(columnDefinition = "TEXT")
+    var bio: String = bio
+        protected set
+
+    @Column
+    var imageUrl: String? = imageUrl
+        protected set
+
+    @Column
+    var githubUrl: String? = githubUrl
+        protected set
+
+    @Column
+    var email: String? = email
+        protected set
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    val id: Long? = null
+
+    fun update(name: String, bio: String, imageUrl: String?, githubUrl: String?, email: String?) {
+        this.name = name
+        this.bio = bio
+        this.imageUrl = imageUrl
+        this.githubUrl = githubUrl
+        this.email = email
+    }
+}
