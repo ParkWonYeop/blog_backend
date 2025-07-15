@@ -32,3 +32,39 @@ class ChessGameRecord(
     @Column(name = "game_id", nullable = false, length = 36)
     val gameId: String,
 
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "member_id", nullable = false)
+    val member: Member,
+
+    @Column(nullable = false)
+    var rating: Int,
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "player_color", nullable = false, length = 10)
+    var playerColor: ChessSide,
+
+    @Column(nullable = false, length = 10)
+    var model: String,
+
+    @Column(nullable = false)
+    var temperature: Double,
+
+    @Column(name = "top_p", nullable = false)
+    var topP: Double,
+
+    @Column(nullable = false, columnDefinition = "TEXT")
+    var fen: String,
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 10)
+    var turn: ChessSide,
+
+    @Column(nullable = false, columnDefinition = "TEXT")
+    var moves: String,
+
+    @Column(nullable = false, length = 40)
+    var status: String,
+
+    @Column(length = 16)
+    var result: String?,
+
