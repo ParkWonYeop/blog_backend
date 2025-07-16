@@ -68,3 +68,34 @@ class ChessGameRecord(
     @Column(length = 16)
     var result: String?,
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    var outcome: ChessGameOutcome,
+
+    @Column(nullable = false, columnDefinition = "TEXT")
+    var pgn: String
+) : BaseTimeEntity() {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    val id: Long? = null
+
+    fun apply(session: ChessGameSession) {
+        rating = session.rating
+        playerColor = session.playerColor
+        model = session.model
+        temperature = session.temperature
+        topP = session.topP
+        fen = session.fen
+        turn = session.turn
+        moves = session.moves.joinToString(" ")
+        status = session.status
+        result = session.result
+        outcome = session.outcome()
+        pgn = session.pgn
+    }
+
+    fun moveList(): List<String> {
+        return moves.split(" ").filter { it.isNotBlank() }
+    }
+
