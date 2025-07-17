@@ -99,3 +99,46 @@ class ChessGameRecord(
         return moves.split(" ").filter { it.isNotBlank() }
     }
 
+    fun toSession(): ChessGameSession {
+        val zoneId = ZoneId.systemDefault()
+        val memberId = requireNotNull(member.id) { "member id is required." }
+        return ChessGameSession(
+            gameId = gameId,
+            memberId = memberId,
+            rating = rating,
+            playerColor = playerColor,
+            model = model,
+            temperature = temperature,
+            topP = topP,
+            fen = fen,
+            turn = turn,
+            moves = moveList(),
+            status = status,
+            result = result,
+            pgn = pgn,
+            createdAt = createdAt.atZone(zoneId).toInstant(),
+            updatedAt = updatedAt.atZone(zoneId).toInstant()
+        )
+    }
+
+    companion object {
+        fun from(member: Member, session: ChessGameSession): ChessGameRecord {
+            return ChessGameRecord(
+                gameId = session.gameId,
+                member = member,
+                rating = session.rating,
+                playerColor = session.playerColor,
+                model = session.model,
+                temperature = session.temperature,
+                topP = session.topP,
+                fen = session.fen,
+                turn = session.turn,
+                moves = session.moves.joinToString(" "),
+                status = session.status,
+                result = session.result,
+                outcome = session.outcome(),
+                pgn = session.pgn
+            )
+        }
+    }
+}
