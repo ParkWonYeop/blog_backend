@@ -26,3 +26,29 @@ class ChessPuzzle(
     @Column(nullable = false, length = 120)
     val fen: String,
 
+    @Column(nullable = false, length = 20)
+    val answer: String,
+
+    @Column(nullable = false, length = 8)
+    val answerUci: String,
+
+    @Column(nullable = false)
+    val hint: String,
+
+    @Column(nullable = false)
+    val rating: Int,
+
+    @Column(nullable = false)
+    val popularity: Int,
+
+    @Column(nullable = false)
+    val sortOrder: Int,
+
+    @Column(nullable = false)
+    val active: Boolean = true
+) : BaseTimeEntity() {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    val id: Long? = null
+}
