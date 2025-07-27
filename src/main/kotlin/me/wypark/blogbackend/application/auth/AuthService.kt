@@ -37,3 +37,37 @@ class AuthService(
         )
         emailVerification.sendVerificationCode(request.email)
     }
+
+    @Transactional
+    fun login(request: LoginRequest): TokenDto {
+        val member = memberRepository.findByEmail(request.email)
+            ?: throw BusinessException("가입되지 않은 이메일입니다.")
+        if (!passwordEncoder.matches(request.password, member.password)) {
+            throw BusinessException("비밀번호가 일치하지 않습니다.")
+        }
+        if (!member.isVerified) {
+            throw BusinessException("이메일 인증이 필요합니다.")
+        }
+
+        val authentication = authenticationManager.authenticate(
+            UsernamePasswordAuthenticationToken(request.email, request.password)
+        )
+        val tokens = tokenProvider.generate(authentication)
+        refreshTokenStore.save(authentication.name, tokens.refreshToken)
+        return tokens
+    }
+
+    @Transactional
+    fun reissue(accessToken: String, refreshToken: String): TokenDto {
+        if (!tokenProvider.isValid(refreshToken)) {
+            throw BusinessException("유효하지 않은 Refresh Token입니다.")
+        }
+
+        val email = tokenProvider.extractSubject(accessToken)
+        val savedToken = refreshTokenStore.findByEmail(email)
+            ?: throw BusinessException("로그아웃 된 사용자입니다.")
+        if (savedToken != refreshToken) {
+            refreshTokenStore.delete(email)
+            throw BusinessException("토큰 정보가 일치하지 않습니다. (재사용 감지됨)")
+        }
+
