@@ -71,3 +71,41 @@ class AuthService(
             throw BusinessException("토큰 정보가 일치하지 않습니다. (재사용 감지됨)")
         }
 
+        val userDetails = userDetailsService.loadUserByUsername(email)
+        val authentication = UsernamePasswordAuthenticationToken(
+            userDetails,
+            null,
+            userDetails.authorities
+        )
+        val tokens = tokenProvider.generate(authentication)
+        refreshTokenStore.save(authentication.name, tokens.refreshToken)
+        return tokens
+    }
+
+    @Transactional
+    fun logout(email: String) {
+        refreshTokenStore.delete(email)
+    }
+
+    @Transactional
+    fun verifyEmail(email: String, code: String) {
+        val member = memberRepository.findByEmail(email)
+            ?: throw BusinessException("존재하지 않는 회원입니다.")
+        if (member.isVerified) {
+            throw BusinessException("이미 인증된 회원입니다.")
+        }
+        if (!emailVerification.verifyCode(email, code)) {
+            throw BusinessException("인증 코드가 올바르지 않거나 만료되었습니다.")
+        }
+        member.verify()
+    }
+
+    private fun validateUniqueMember(request: SignupRequest) {
+        if (memberRepository.existsByEmail(request.email)) {
+            throw BusinessException("이미 가입된 이메일입니다.")
+        }
+        if (memberRepository.existsByNickname(request.nickname)) {
+            throw BusinessException("이미 사용 중인 닉네임입니다.")
+        }
+    }
+}
