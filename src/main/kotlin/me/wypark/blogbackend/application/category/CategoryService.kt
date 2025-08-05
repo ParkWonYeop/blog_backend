@@ -29,3 +29,34 @@ class CategoryService(
         return requireNotNull(categoryRepository.save(category).id) { "Saved category must have an id" }
     }
 
+    @Transactional
+    fun updateCategory(id: Long, request: CategoryUpdateRequest) {
+        val category = findCategory(id, "존재하지 않는 카테고리입니다.")
+
+        if (category.name != request.name) {
+            validateAvailableName(request.name)
+            category.updateName(request.name)
+        }
+
+        if (category.parent?.id != request.parentId) {
+            val newParent = request.parentId?.let {
+                findCategory(it, "이동하려는 부모 카테고리가 존재하지 않습니다.")
+            }
+            if (newParent != null) validateHierarchy(category, newParent)
+            category.changeParent(newParent)
+        }
+    }
+
+    @Transactional
+    fun deleteCategory(id: Long) {
+        val category = findCategory(id, "존재하지 않는 카테고리입니다.")
+        val categories = buildList { collectCategoryTree(category, this) }
+
+        postRepository.bulkUpdateCategoryToNull(categories)
+        categoryRepository.delete(category)
+    }
+
+    private fun validateAvailableName(name: String) {
+        if (name.equals(UNCATEGORIZED, ignoreCase = true)) {
+            throw BusinessException("'uncategorized'는 시스템 예약어이므로 사용할 수 없습니다.")
+        }
