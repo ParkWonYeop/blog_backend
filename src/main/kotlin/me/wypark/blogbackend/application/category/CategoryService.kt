@@ -60,3 +60,35 @@ class CategoryService(
         if (name.equals(UNCATEGORIZED, ignoreCase = true)) {
             throw BusinessException("'uncategorized'는 시스템 예약어이므로 사용할 수 없습니다.")
         }
+        if (categoryRepository.existsByName(name)) {
+            throw BusinessException("이미 존재하는 카테고리 이름입니다.")
+        }
+    }
+
+    private fun validateHierarchy(category: Category, newParent: Category) {
+        if (category.id == newParent.id) {
+            throw BusinessException("자기 자신을 부모로 설정할 수 없습니다.")
+        }
+
+        var ancestor = newParent.parent
+        while (ancestor != null) {
+            if (ancestor.id == category.id) {
+                throw BusinessException("자신의 하위 카테고리 밑으로 이동할 수 없습니다.")
+            }
+            ancestor = ancestor.parent
+        }
+    }
+
+    private fun findCategory(id: Long, message: String): Category {
+        return categoryRepository.findByIdOrNull(id) ?: throw BusinessException(message)
+    }
+
+    private fun collectCategoryTree(category: Category, destination: MutableList<Category>) {
+        destination.add(category)
+        category.children.forEach { collectCategoryTree(it, destination) }
+    }
+
+    companion object {
+        private const val UNCATEGORIZED = "uncategorized"
+    }
+}
