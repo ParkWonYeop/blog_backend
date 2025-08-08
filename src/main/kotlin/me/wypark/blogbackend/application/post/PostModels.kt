@@ -38,3 +38,29 @@ data class PostResponse(
                 nextPost = next?.let(PostNeighborResponse::from)
             )
         }
+    }
+}
+
+data class PostSummaryResponse(
+    val id: Long,
+    val title: String,
+    val slug: String,
+    val categoryName: String?,
+    val viewCount: Long,
+    val createdAt: LocalDateTime,
+    val updatedAt: LocalDateTime,
+    val content: String?
+) {
+    companion object {
+        fun from(post: Post): PostSummaryResponse {
+            return PostSummaryResponse(
+                id = requireNotNull(post.id) { "Persisted post must have an id" },
+                title = post.title,
+                slug = post.slug,
+                categoryName = post.category?.name,
+                viewCount = post.viewCount,
+                createdAt = post.createdAt,
+                updatedAt = post.updatedAt,
+                content = post.content
+            )
+        }
