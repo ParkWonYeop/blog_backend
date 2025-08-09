@@ -64,3 +64,26 @@ data class PostSummaryResponse(
                 content = post.content
             )
         }
+
+        fun from(summary: PostSummary): PostSummaryResponse {
+            return PostSummaryResponse(
+                id = summary.id,
+                title = summary.title,
+                slug = summary.slug,
+                categoryName = summary.categoryName,
+                viewCount = summary.viewCount,
+                createdAt = summary.createdAt,
+                updatedAt = summary.updatedAt,
+                content = summary.content
+            )
+        }
+    }
+}
+
+data class PostSaveRequest(
+    val title: String,
+    val content: String,
+    val slug: String? = null,
+    val categoryId: Long? = null,
+    val tags: List<String> = emptyList()
+)
