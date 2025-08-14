@@ -69,3 +69,42 @@ class PostService(
         return requireNotNull(postRepository.save(post).id) { "Saved post must have an id" }
     }
 
+    @Transactional
+    fun updatePost(id: Long, request: PostSaveRequest): Long {
+        val post = postRepository.findByIdOrNull(id)
+            ?: throw BusinessException("존재하지 않는 게시글입니다.")
+
+        deleteRemovedImages(post.content, request.content)
+
+        val category = request.categoryId?.let(categoryRepository::findByIdOrNull)
+        val slug = request.slug
+            ?.takeUnless(String::isBlank)
+            ?.takeIf { it != post.slug }
+            ?.let { uniqueSlug(it, request.title) }
+            ?: post.slug
+
+        post.update(request.title, request.content, slug, category)
+        post.updateTags(resolveTags(request.tags, post))
+        return requireNotNull(post.id) { "Persisted post must have an id" }
+    }
+
+    @Transactional
+    fun deletePost(id: Long) {
+        val post = postRepository.findByIdOrNull(id)
+            ?: throw BusinessException("존재하지 않는 게시글입니다.")
+
+        MarkdownImageExtractor.extractFileNames(post.content).forEach(imageService::deleteImage)
+        postRepository.delete(post)
+    }
+
+    fun searchPosts(
+        keyword: String?,
+        categoryName: String?,
+        tagName: String?,
+        pageable: Pageable
+    ): Page<PostSummaryResponse> {
+        val categoryNames = categoryName?.let(::getCategoryAndDescendants)
+        return postRepository.search(keyword, categoryNames, tagName, pageable)
+            .map(PostSummaryResponse::from)
+    }
+
