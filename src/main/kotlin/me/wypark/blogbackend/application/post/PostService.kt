@@ -108,3 +108,39 @@ class PostService(
             .map(PostSummaryResponse::from)
     }
 
+    private fun uniqueSlug(input: String?, title: String): String {
+        return SlugGenerator.generate(input, title, postRepository::existsBySlug)
+    }
+
+    private fun resolveTags(tagNames: List<String>, post: Post): List<PostTag> {
+        return tagNames.map { name ->
+            val tag = tagRepository.findByName(name) ?: tagRepository.save(Tag(name))
+            PostTag(post, tag)
+        }
+    }
+
+    private fun deleteRemovedImages(previousContent: String, updatedContent: String) {
+        val previous = MarkdownImageExtractor.extractFileNames(previousContent)
+        val updated = MarkdownImageExtractor.extractFileNames(updatedContent).toSet()
+        previous.filterNot(updated::contains).forEach(imageService::deleteImage)
+    }
+
+    private fun getCategoryAndDescendants(categoryName: String): List<String> {
+        if (categoryName.equals(UNCATEGORIZED, ignoreCase = true)) {
+            return listOf(UNCATEGORIZED)
+        }
+
+        val category = categoryRepository.findByName(categoryName) ?: return listOf(categoryName)
+        return buildList { collectCategoryNames(category, this) }
+    }
+
+    private fun collectCategoryNames(category: Category, destination: MutableList<String>) {
+        destination.add(category.name)
+        category.children.forEach { collectCategoryNames(it, destination) }
+    }
+
+    companion object {
+        private const val UNCATEGORIZED = "uncategorized"
+        private val KOREA_ZONE_ID: ZoneId = ZoneId.of("Asia/Seoul")
+    }
+}
