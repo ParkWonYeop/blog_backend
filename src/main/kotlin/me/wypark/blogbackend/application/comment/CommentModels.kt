@@ -27,3 +27,36 @@ data class CommentResponse(
     }
 }
 
+data class CommentSaveRequest(
+    val postSlug: String,
+    val content: String,
+    val parentId: Long? = null,
+    val guestNickname: String? = null,
+    val guestPassword: String? = null
+)
+
+data class CommentDeleteRequest(
+    val guestPassword: String? = null
+)
+
+data class AdminCommentResponse(
+    val id: Long,
+    val content: String,
+    val author: String,
+    val postTitle: String,
+    val postSlug: String,
+    val createdAt: LocalDateTime
+) {
+    companion object {
+        fun from(comment: Comment): AdminCommentResponse {
+            return AdminCommentResponse(
+                id = requireNotNull(comment.id) { "Persisted comment must have an id" },
+                content = comment.content,
+                author = comment.getAuthorName(),
+                postTitle = comment.post.title,
+                postSlug = comment.post.slug,
+                createdAt = comment.createdAt
+            )
+        }
+    }
+}
