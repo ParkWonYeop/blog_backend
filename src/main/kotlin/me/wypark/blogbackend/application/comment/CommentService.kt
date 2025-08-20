@@ -37,3 +37,32 @@ class CommentService(
             commentRepository.findByIdOrNull(it)
                 ?: throw BusinessException("부모 댓글이 존재하지 않습니다.")
         }
+
+        val comment = if (userEmail == null) {
+            createGuestComment(request, post, parent)
+        } else {
+            val member = memberRepository.findByEmail(userEmail)
+                ?: throw BusinessException("회원 정보를 찾을 수 없습니다.")
+            Comment(content = request.content, post = post, parent = parent, member = member)
+        }
+
+        parent?.addReply(comment)
+        return requireNotNull(commentRepository.save(comment).id) { "Saved comment must have an id" }
+    }
+
+    @Transactional
+    fun deleteComment(commentId: Long, userEmail: String?, guestPassword: String?) {
+        val comment = findComment(commentId)
+        verifyDeletePermission(comment, userEmail, guestPassword)
+        commentRepository.delete(comment)
+    }
+
+    @Transactional
+    fun deleteCommentByAdmin(commentId: Long) {
+        commentRepository.delete(findComment(commentId))
+    }
+
+    fun getAllComments(pageable: Pageable): Page<AdminCommentResponse> {
+        return commentRepository.findAll(pageable).map(AdminCommentResponse::from)
+    }
+
