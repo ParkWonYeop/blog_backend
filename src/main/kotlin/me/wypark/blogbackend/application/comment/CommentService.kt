@@ -66,3 +66,43 @@ class CommentService(
         return commentRepository.findAll(pageable).map(AdminCommentResponse::from)
     }
 
+    private fun createGuestComment(
+        request: CommentSaveRequest,
+        post: Post,
+        parent: Comment?
+    ): Comment {
+        val nickname = request.guestNickname?.takeUnless(String::isBlank)
+            ?: throw BusinessException("비회원은 닉네임과 비밀번호가 필수입니다.")
+        val password = request.guestPassword?.takeUnless(String::isBlank)
+            ?: throw BusinessException("비회원은 닉네임과 비밀번호가 필수입니다.")
+
+        return Comment(
+            content = request.content,
+            post = post,
+            parent = parent,
+            guestNickname = nickname,
+            guestPassword = passwordEncoder.encode(password)
+        )
+    }
+
+    private fun verifyDeletePermission(comment: Comment, userEmail: String?, guestPassword: String?) {
+        if (userEmail != null) {
+            if (comment.member?.email != userEmail) {
+                throw BusinessException("본인의 댓글만 삭제할 수 있습니다.")
+            }
+            return
+        }
+
+        val encodedPassword = comment.guestPassword
+        if (encodedPassword == null || guestPassword == null ||
+            !passwordEncoder.matches(guestPassword, encodedPassword)
+        ) {
+            throw BusinessException("비밀번호가 일치하지 않습니다.")
+        }
+    }
+
+    private fun findComment(id: Long): Comment {
+        return commentRepository.findByIdOrNull(id)
+            ?: throw BusinessException("존재하지 않는 댓글입니다.")
+    }
+}
