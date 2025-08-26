@@ -26,3 +26,32 @@ data class DashboardTrafficPoint(
     val views: Long
 )
 
+data class DashboardPostStat(
+    val id: Long,
+    val title: String,
+    val slug: String,
+    val categoryName: String,
+    val viewCount: Long,
+    val rangeViewCount: Long,
+    val commentCount: Long,
+    val createdAt: OffsetDateTime,
+    val updatedAt: OffsetDateTime?
+)
+
+data class DashboardCategoryStat(
+    val id: Long,
+    val name: String,
+    val parentId: Long?,
+    val postCount: Long,
+    val viewCount: Long,
+    val recentViewCount: Long,
+    val lastPublishedAt: OffsetDateTime?,
+    val childrenCount: Long
+)
+
+data class DashboardActionItems(
+    val unansweredComments: Long,
+    val uncategorizedPosts: Long,
+    val stalePopularPosts: Long
+)
+
