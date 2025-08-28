@@ -55,3 +55,35 @@ data class DashboardActionItems(
     val stalePopularPosts: Long
 )
 
+data class DashboardPostSummary(
+    val id: Long,
+    val title: String,
+    val slug: String,
+    val categoryName: String,
+    val viewCount: Long,
+    val createdAt: OffsetDateTime,
+    val tags: List<String>
+)
+
+data class AdminDashboardCommentSummary(
+    val id: Long,
+    val content: String,
+    val author: String?,
+    val guestNickname: String?,
+    val memberNickname: String?,
+    val postSlug: String?,
+    val postTitle: String?,
+    val createdAt: OffsetDateTime
+)
+
+data class AdminDashboardResponse(
+    val overview: DashboardOverview,
+    val traffic: List<DashboardTrafficPoint>,
+    val topPosts: List<DashboardPostStat>,
+    val risingPosts: List<DashboardPostStat>,
+    val stalePopularPosts: List<DashboardPostStat>,
+    val recentPosts: List<DashboardPostSummary>,
+    val recentComments: List<AdminDashboardCommentSummary>,
+    val categoryStats: List<DashboardCategoryStat>,
+    val actionItems: DashboardActionItems
+)
