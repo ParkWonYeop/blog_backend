@@ -38,3 +38,38 @@ class AdminDashboardService(
             limit = POST_WIDGET_LIMIT
         ).map { it.toDashboardPostStat(zoneId) }
 
+        return AdminDashboardResponse(
+            overview = buildOverview(today, zoneId),
+            traffic = buildTraffic(selectedWindow),
+            topPosts = dashboardQuery.findTopPosts(
+                selectedWindow.startDate,
+                selectedWindow.endDate,
+                POST_WIDGET_LIMIT
+            ).map { it.toDashboardPostStat(zoneId) },
+            risingPosts = dashboardQuery.findRisingPosts(
+                currentStartDate = selectedWindow.startDate,
+                currentEndDate = selectedWindow.endDate,
+                previousStartDate = previousSelectedWindow.startDate,
+                previousEndDate = previousSelectedWindow.endDate,
+                minimumViewCount = RISING_POST_MINIMUM_VIEWS,
+                limit = POST_WIDGET_LIMIT
+            ).map { it.toDashboardPostStat(zoneId) },
+            stalePopularPosts = stalePopularPosts,
+            recentPosts = findRecentPosts(zoneId),
+            recentComments = findRecentComments(zoneId),
+            categoryStats = dashboardQuery.findCategoryStats(
+                selectedWindow.startDate,
+                selectedWindow.endDate
+            ).map { it.toDashboardCategoryStat(zoneId) },
+            actionItems = DashboardActionItems(
+                unansweredComments = dashboardQuery.countUnansweredComments(),
+                uncategorizedPosts = dashboardQuery.countUncategorizedPosts(),
+                stalePopularPosts = dashboardQuery.countStalePopularPosts(
+                    startDate = selectedWindow.startDate,
+                    endDate = selectedWindow.endDate,
+                    staleBefore = staleBefore,
+                    minimumViewCount = STALE_POPULAR_MINIMUM_VIEWS
+                )
+            )
+        )
+    }
