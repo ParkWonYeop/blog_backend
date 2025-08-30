@@ -73,3 +73,39 @@ class AdminDashboardService(
             )
         )
     }
+
+    private fun buildOverview(today: LocalDate, zoneId: ZoneId): DashboardOverview {
+        val todayWindow = DashboardDateUtils.currentWindow(today, 1)
+        val yesterdayWindow = DashboardDateUtils.previousWindow(todayWindow)
+        val weekWindow = DashboardDateUtils.currentWindow(today, 7)
+        val previousWeekWindow = DashboardDateUtils.previousWindow(weekWindow)
+        val monthWindow = DashboardDateUtils.currentWindow(today, 30)
+        val previousMonthWindow = DashboardDateUtils.previousWindow(monthWindow)
+
+        return DashboardOverview(
+            todayViews = metric(todayWindow, yesterdayWindow),
+            weekViews = metric(weekWindow, previousWeekWindow),
+            monthViews = metric(monthWindow, previousMonthWindow),
+            totalPosts = postRepository.count(),
+            totalComments = commentRepository.count(),
+            totalCategories = categoryRepository.count(),
+            lastPublishedAt = dashboardQuery.findLastPublishedAt().toOffsetDateTimeOrNull(zoneId),
+            generatedAt = OffsetDateTime.now(clock.withZone(zoneId))
+        )
+    }
+
+    private fun metric(currentWindow: DashboardDateWindow, previousWindow: DashboardDateWindow): DashboardMetric {
+        val currentValue = dashboardQuery.sumViewsBetween(currentWindow.startDate, currentWindow.endDate)
+        val previousValue = dashboardQuery.sumViewsBetween(previousWindow.startDate, previousWindow.endDate)
+
+        return DashboardMetric(
+            value = currentValue,
+            previousValue = previousValue,
+            changeRate = DashboardDateUtils.changeRate(currentValue, previousValue)
+        )
+    }
+
+    private fun buildTraffic(window: DashboardDateWindow): List<DashboardTrafficPoint> {
+        val viewsByDate = dashboardQuery.findTrafficBetween(window.startDate, window.endDate)
+            .associate { it.date to it.views }
+
