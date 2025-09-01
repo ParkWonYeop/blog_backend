@@ -109,3 +109,40 @@ class AdminDashboardService(
         val viewsByDate = dashboardQuery.findTrafficBetween(window.startDate, window.endDate)
             .associate { it.date to it.views }
 
+        val points = mutableListOf<DashboardTrafficPoint>()
+        var date = window.startDate
+        while (!date.isAfter(window.endDate)) {
+            points.add(DashboardTrafficPoint(date = date, views = viewsByDate[date] ?: 0L))
+            date = date.plusDays(1)
+        }
+        return points
+    }
+
+    private fun findRecentPosts(zoneId: ZoneId): List<DashboardPostSummary> {
+        val pageable = PageRequest.of(
+            0,
+            RECENT_WIDGET_LIMIT,
+            Sort.by(Sort.Direction.DESC, "createdAt")
+        )
+
+        return postRepository.findAll(pageable).content.map { it.toDashboardPostSummary(zoneId) }
+    }
+
+    private fun findRecentComments(zoneId: ZoneId): List<AdminDashboardCommentSummary> {
+        val pageable = PageRequest.of(
+            0,
+            RECENT_WIDGET_LIMIT,
+            Sort.by(Sort.Direction.DESC, "createdAt")
+        )
+
+        return commentRepository.findAll(pageable).content.map { it.toDashboardCommentSummary(zoneId) }
+    }
+
+    companion object {
+        private const val POST_WIDGET_LIMIT = 5
+        private const val RECENT_WIDGET_LIMIT = 5
+        private const val RISING_POST_MINIMUM_VIEWS = 5L
+        private const val STALE_POPULAR_MINIMUM_VIEWS = 10L
+        private const val STALE_POPULAR_DAYS = 180L
+    }
+}
