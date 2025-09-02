@@ -29,3 +29,36 @@ data class DashboardDateWindow(
 object DashboardDateUtils {
     private val defaultZoneId: ZoneId = ZoneId.of("Asia/Seoul")
 
+    fun resolveZoneId(rawValue: String?): ZoneId {
+        if (rawValue.isNullOrBlank()) return defaultZoneId
+
+        return try {
+            ZoneId.of(rawValue)
+        } catch (_: DateTimeException) {
+            defaultZoneId
+        }
+    }
+
+    fun currentWindow(today: LocalDate, days: Long): DashboardDateWindow {
+        return DashboardDateWindow(
+            startDate = today.minusDays(days - 1),
+            endDate = today
+        )
+    }
+
+    fun previousWindow(currentWindow: DashboardDateWindow): DashboardDateWindow {
+        val previousEndDate = currentWindow.startDate.minusDays(1)
+        return DashboardDateWindow(
+            startDate = previousEndDate.minusDays(currentWindow.days - 1),
+            endDate = previousEndDate
+        )
+    }
+
+    fun changeRate(currentValue: Long, previousValue: Long): BigDecimal? {
+        if (previousValue == 0L) return null
+
+        return BigDecimal.valueOf(currentValue - previousValue)
+            .multiply(BigDecimal.valueOf(100))
+            .divide(BigDecimal.valueOf(previousValue), 2, RoundingMode.HALF_UP)
+    }
+}
