@@ -29,3 +29,31 @@ internal fun DashboardCategoryStatRow.toDashboardCategoryStat(zoneId: ZoneId) = 
     childrenCount = childrenCount
 )
 
+internal fun Post.toDashboardPostSummary(zoneId: ZoneId) = DashboardPostSummary(
+    id = requireNotNull(id) { "Persisted post must have an id" },
+    title = title,
+    slug = slug,
+    categoryName = category?.name ?: "미분류",
+    viewCount = viewCount,
+    createdAt = createdAt.toOffsetDateTime(zoneId),
+    tags = tags.map { it.tag.name }
+)
+
+internal fun Comment.toDashboardCommentSummary(zoneId: ZoneId) = AdminDashboardCommentSummary(
+    id = requireNotNull(id) { "Persisted comment must have an id" },
+    content = content,
+    author = getAuthorName(),
+    guestNickname = guestNickname,
+    memberNickname = member?.nickname,
+    postSlug = post.slug,
+    postTitle = post.title,
+    createdAt = createdAt.toOffsetDateTime(zoneId)
+)
+
+internal fun LocalDateTime.toOffsetDateTime(zoneId: ZoneId): OffsetDateTime {
+    return atZone(zoneId).toOffsetDateTime()
+}
+
+internal fun LocalDateTime?.toOffsetDateTimeOrNull(zoneId: ZoneId): OffsetDateTime? {
+    return this?.toOffsetDateTime(zoneId)
+}
