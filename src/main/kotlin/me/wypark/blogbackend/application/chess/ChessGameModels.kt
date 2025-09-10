@@ -35,3 +35,42 @@ data class ChessGameCreateRequest(
     val topP: Double = 0.95
 )
 
+data class ChessMoveRequest(
+    @field:Pattern(
+        regexp = "^[a-h][1-8][a-h][1-8][qrbn]?$",
+        message = "move는 UCI 형식이어야 합니다. 예: e2e4, e7e8q"
+    )
+    val move: String
+)
+
+data class ChessGameResponse(
+    val gameId: String,
+    val rating: Int,
+    val playerColor: String,
+    val model: String,
+    val fen: String,
+    val turn: String,
+    val moves: List<String>,
+    val status: String,
+    val result: String?,
+    val outcome: String,
+    val pgn: String,
+    val maiaMove: String?
+) {
+    companion object {
+        fun from(session: ChessGameSession, maiaMove: String? = null): ChessGameResponse {
+            return ChessGameResponse(
+                gameId = session.gameId,
+                rating = session.rating,
+                playerColor = session.playerColor.value,
+                model = session.model,
+                fen = session.fen,
+                turn = session.turn.value,
+                moves = session.moves,
+                status = session.status,
+                result = session.result,
+                outcome = session.outcome().name,
+                pgn = session.pgn,
+                maiaMove = maiaMove
+            )
+        }
