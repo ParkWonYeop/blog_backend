@@ -74,3 +74,50 @@ data class ChessGameResponse(
                 maiaMove = maiaMove
             )
         }
+
+        fun from(record: ChessGameRecord, maiaMove: String? = null): ChessGameResponse {
+            return ChessGameResponse(
+                gameId = record.gameId,
+                rating = record.rating,
+                playerColor = record.playerColor.value,
+                model = record.model,
+                fen = record.fen,
+                turn = record.turn.value,
+                moves = record.moveList(),
+                status = record.status,
+                result = record.result,
+                outcome = record.outcome.name,
+                pgn = record.pgn,
+                maiaMove = maiaMove
+            )
+        }
+    }
+}
+
+data class ChessGameSummaryResponse(
+    val gameId: String,
+    val rating: Int,
+    val playerColor: String,
+    val model: String,
+    val status: String,
+    val result: String?,
+    val outcome: String,
+    val movesCount: Int,
+    val createdAt: LocalDateTime,
+    val updatedAt: LocalDateTime
+) {
+    companion object {
+        fun from(record: ChessGameRecord): ChessGameSummaryResponse {
+            return ChessGameSummaryResponse(
+                gameId = record.gameId,
+                rating = record.rating,
+                playerColor = record.playerColor.value,
+                model = record.model,
+                status = record.status,
+                result = record.result,
+                outcome = record.outcome.name,
+                movesCount = record.moveList().size,
+                createdAt = record.createdAt,
+                updatedAt = record.updatedAt
+            )
+        }
