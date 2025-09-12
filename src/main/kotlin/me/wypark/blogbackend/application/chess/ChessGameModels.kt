@@ -121,3 +121,32 @@ data class ChessGameSummaryResponse(
                 updatedAt = record.updatedAt
             )
         }
+    }
+}
+
+data class ChessGamePgnResponse(
+    val gameId: String,
+    val pgn: String
+)
+
+data class ChessGameStatsResponse(
+    val total: Long,
+    val inProgress: Long,
+    val wins: Long,
+    val losses: Long,
+    val draws: Long,
+    val unknown: Long
+) {
+    companion object {
+        fun from(stats: ChessGameHistoryStats): ChessGameStatsResponse {
+            return ChessGameStatsResponse(
+                total = stats.total,
+                inProgress = stats.inProgress,
+                wins = stats.wins,
+                losses = stats.losses,
+                draws = stats.draws,
+                unknown = stats.unknown
+            )
+        }
+    }
+}
