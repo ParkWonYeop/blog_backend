@@ -25,3 +25,47 @@ class ChessGameService(
         val now = Instant.now(clock)
         val labels = playerLabels(playerColor, request.rating, request.model)
 
+        val initialState = maiaEngine.getState(
+            MaiaStateRequest(
+                moves = emptyList(),
+                white = labels.white,
+                black = labels.black
+            )
+        )
+        var session = ChessGameSession(
+            gameId = UUID.randomUUID().toString(),
+            memberId = memberId,
+            rating = request.rating,
+            playerColor = playerColor,
+            model = request.model,
+            temperature = request.temperature,
+            topP = request.topP,
+            fen = initialState.fen,
+            turn = ChessSide.from(initialState.turn),
+            moves = emptyList(),
+            status = initialState.status,
+            result = initialState.result,
+            pgn = initialState.pgn,
+            createdAt = now,
+            updatedAt = now
+        )
+
+        var maiaMove: String? = null
+        if (playerColor == ChessSide.BLACK) {
+            val maiaResponse = maiaEngine.playMove(session.toMaiaPlayRequest())
+            maiaMove = maiaResponse.move
+            session = session.applyEngineResponse(maiaResponse, now)
+        }
+
+        saveSession(session)
+        return ChessGameResponse.from(session, maiaMove)
+    }
+
+    fun getGames(memberId: Long, pageable: Pageable): Page<ChessGameSummaryResponse> {
+        return chessGameHistoryStore.findAllByMemberId(memberId, pageable)
+            .map { ChessGameSummaryResponse.from(it) }
+    }
+
+    fun getStats(memberId: Long): ChessGameStatsResponse {
+        return ChessGameStatsResponse.from(chessGameHistoryStore.getStats(memberId))
+    }
