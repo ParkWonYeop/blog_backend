@@ -69,3 +69,37 @@ class ChessGameService(
     fun getStats(memberId: Long): ChessGameStatsResponse {
         return ChessGameStatsResponse.from(chessGameHistoryStore.getStats(memberId))
     }
+
+    fun getGame(memberId: Long, gameId: String): ChessGameResponse {
+        val session = chessGameStore.findById(gameId)
+        if (session != null) {
+            requireOwnedBy(session, memberId)
+            return ChessGameResponse.from(session)
+        }
+
+        val record = chessGameHistoryStore.findByGameIdAndMemberId(gameId, memberId)
+            ?: throw IllegalArgumentException("Chess game not found.")
+        return ChessGameResponse.from(record)
+    }
+
+    fun getPgn(memberId: Long, gameId: String): ChessGamePgnResponse {
+        val game = getGame(memberId, gameId)
+        return ChessGamePgnResponse(gameId = game.gameId, pgn = game.pgn)
+    }
+
+    @Transactional
+    fun playMove(memberId: Long, gameId: String, request: ChessMoveRequest): ChessGameResponse {
+        val session = getPlayableSession(memberId, gameId)
+        require(session.status == "IN_PROGRESS") { "This chess game is already finished." }
+        require(session.turn == session.playerColor) { "It is not the player's turn." }
+
+        val movesAfterPlayer = session.moves + request.move
+        val maiaResponse = maiaEngine.playMove(
+            session.toMaiaPlayRequest(moves = movesAfterPlayer)
+        )
+
+        val updated = session.applyEngineResponse(maiaResponse, Instant.now(clock), movesAfterPlayer)
+        saveSession(updated)
+        return ChessGameResponse.from(updated, maiaResponse.move)
+    }
+
