@@ -103,3 +103,38 @@ class ChessGameService(
         return ChessGameResponse.from(updated, maiaResponse.move)
     }
 
+    @Transactional
+    fun resign(memberId: Long, gameId: String): ChessGameResponse {
+        val session = getPlayableSession(memberId, gameId)
+        require(session.status == "IN_PROGRESS") { "This chess game is already finished." }
+
+        val result = session.playerColor.resignationResult()
+        val updated = session.copy(
+            status = "RESIGNED",
+            result = result,
+            pgn = session.pgn.withPgnResult(result),
+            updatedAt = Instant.now(clock)
+        )
+
+        saveSession(updated)
+        return ChessGameResponse.from(updated)
+    }
+
+    @Transactional
+    fun undoMove(memberId: Long, gameId: String): ChessGameResponse {
+        val session = getPlayableSession(memberId, gameId)
+        require(session.status != "RESIGNED") { "Resigned games cannot be undone." }
+
+        val lastPlayerMoveIndex = session.moves.indices
+            .lastOrNull { sideForMoveIndex(it) == session.playerColor }
+            ?: throw IllegalArgumentException("There is no player move to undo.")
+        val revertedMoves = session.moves.take(lastPlayerMoveIndex)
+        val labels = playerLabels(session.playerColor, session.rating, session.model)
+        val state = maiaEngine.getState(
+            MaiaStateRequest(
+                moves = revertedMoves,
+                white = labels.white,
+                black = labels.black
+            )
+        )
+
