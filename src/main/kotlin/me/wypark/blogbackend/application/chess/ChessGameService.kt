@@ -138,3 +138,37 @@ class ChessGameService(
             )
         )
 
+        val updated = session.copy(
+            fen = state.fen,
+            turn = ChessSide.from(state.turn),
+            moves = revertedMoves,
+            status = state.status,
+            result = state.result,
+            pgn = state.pgn,
+            updatedAt = Instant.now(clock)
+        )
+
+        saveSession(updated)
+        return ChessGameResponse.from(updated)
+    }
+
+    private fun getPlayableSession(memberId: Long, gameId: String): ChessGameSession {
+        val session = chessGameStore.findById(gameId)
+        if (session != null) {
+            requireOwnedBy(session, memberId)
+            return session
+        }
+
+        val record = chessGameHistoryStore.findByGameIdAndMemberId(gameId, memberId)
+            ?: throw IllegalArgumentException("Chess game not found.")
+        return record.toSession()
+    }
+
+    private fun saveSession(session: ChessGameSession) {
+        chessGameStore.save(session)
+        chessGameHistoryStore.save(session)
+    }
+
+    private fun requireOwnedBy(session: ChessGameSession, memberId: Long) {
+        require(session.memberId == memberId) { "Chess game not found." }
+    }
