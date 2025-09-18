@@ -172,3 +172,35 @@ class ChessGameService(
     private fun requireOwnedBy(session: ChessGameSession, memberId: Long) {
         require(session.memberId == memberId) { "Chess game not found." }
     }
+
+    private fun sideForMoveIndex(index: Int): ChessSide {
+        return if (index % 2 == 0) ChessSide.WHITE else ChessSide.BLACK
+    }
+
+    private fun ChessSide.resignationResult(): String {
+        return if (this == ChessSide.WHITE) "0-1" else "1-0"
+    }
+
+    private fun String.withPgnResult(result: String): String {
+        val withHeader = if (contains(Regex("""\[Result\s+"[^"]*"]"""))) {
+            replace(Regex("""\[Result\s+"[^"]*"]"""), """[Result "$result"]""")
+        } else {
+            """[Result "$result"]""" + "\n" + this
+        }
+        val trailingResult = Regex("""(1-0|0-1|1/2-1/2|\*)\s*$""")
+        return if (trailingResult.containsMatchIn(withHeader)) {
+            trailingResult.replace(withHeader, result)
+        } else {
+            "${withHeader.trimEnd()} $result"
+        }
+    }
+
+    private fun playerLabels(playerColor: ChessSide, rating: Int, model: String): PlayerLabels {
+        val maiaName = "Maia3-$model-$rating"
+        return if (playerColor == ChessSide.WHITE) {
+            PlayerLabels(white = "Player", black = maiaName)
+        } else {
+            PlayerLabels(white = maiaName, black = "Player")
+        }
+    }
+
