@@ -204,3 +204,40 @@ class ChessGameService(
         }
     }
 
+    private fun ChessGameSession.toMaiaPlayRequest(
+        moves: List<String> = this.moves
+    ): MaiaPlayRequest {
+        val labels = playerLabels(playerColor, rating, model)
+        return MaiaPlayRequest(
+            moves = moves,
+            rating = rating,
+            model = model,
+            temperature = temperature,
+            topP = topP,
+            white = labels.white,
+            black = labels.black
+        )
+    }
+
+    private fun ChessGameSession.applyEngineResponse(
+        response: MaiaPlayResponse,
+        now: Instant,
+        movesBeforeMaia: List<String> = moves
+    ): ChessGameSession {
+        val nextMoves = response.move?.let { movesBeforeMaia + it } ?: movesBeforeMaia
+        return copy(
+            fen = response.fen,
+            turn = ChessSide.from(response.turn),
+            moves = nextMoves,
+            status = response.status,
+            result = response.result,
+            pgn = response.pgn,
+            updatedAt = now
+        )
+    }
+
+    private data class PlayerLabels(
+        val white: String,
+        val black: String
+    )
+}
