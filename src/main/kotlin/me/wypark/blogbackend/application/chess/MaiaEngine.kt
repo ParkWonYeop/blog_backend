@@ -25,3 +25,19 @@ data class MaiaPlayRequest(
     val event: String = "Maia3"
 )
 
+data class MaiaStateResponse(
+    val fen: String,
+    val turn: String,
+    val status: String,
+    val result: String?,
+    val pgn: String = ""
+)
+
+data class MaiaPlayResponse(
+    val move: String?,
+    val fen: String,
+    val turn: String,
+    val status: String,
+    val result: String?,
+    val pgn: String = ""
+)
