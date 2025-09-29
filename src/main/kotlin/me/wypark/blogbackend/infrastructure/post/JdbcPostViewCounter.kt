@@ -25,3 +25,25 @@ class JdbcPostViewCounter(
             incrementPostViewWithPostgresUpsert(postId, date)
             return
         }
+
+        incrementPostViewGenerically(postId, date)
+    }
+
+    private fun incrementPostViewWithPostgresUpsert(postId: Long, statDate: LocalDate) {
+        jdbcTemplate.update(
+            """
+            INSERT INTO post_view_daily_stats (post_id, stat_date, view_count, created_at, updated_at)
+            VALUES (:postId, :statDate, 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+            ON CONFLICT (post_id, stat_date)
+            DO UPDATE SET
+                view_count = post_view_daily_stats.view_count + 1,
+                updated_at = CURRENT_TIMESTAMP
+            """.trimIndent(),
+            params(postId, statDate)
+        )
+    }
+
+    private fun incrementPostViewGenerically(postId: Long, statDate: LocalDate) {
+        val updatedRows = updateExistingRow(postId, statDate)
+        if (updatedRows > 0) return
+
