@@ -47,3 +47,35 @@ class JdbcPostViewCounter(
         val updatedRows = updateExistingRow(postId, statDate)
         if (updatedRows > 0) return
 
+        try {
+            jdbcTemplate.update(
+                """
+                INSERT INTO post_view_daily_stats (post_id, stat_date, view_count, created_at, updated_at)
+                VALUES (:postId, :statDate, 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+                """.trimIndent(),
+                params(postId, statDate)
+            )
+        } catch (e: DuplicateKeyException) {
+            updateExistingRow(postId, statDate)
+        }
+    }
+
+    private fun updateExistingRow(postId: Long, statDate: LocalDate): Int {
+        return jdbcTemplate.update(
+            """
+            UPDATE post_view_daily_stats
+            SET view_count = view_count + 1,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE post_id = :postId
+              AND stat_date = :statDate
+            """.trimIndent(),
+            params(postId, statDate)
+        )
+    }
+
+    private fun params(postId: Long, statDate: LocalDate): MapSqlParameterSource {
+        return MapSqlParameterSource()
+            .addValue("postId", postId)
+            .addValue("statDate", statDate)
+    }
+}
