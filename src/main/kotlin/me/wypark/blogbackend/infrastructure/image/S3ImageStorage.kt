@@ -35,3 +35,41 @@ class S3ImageStorage(
         return "${awsProperties.s3.endpoint}/$bucket/$key"
     }
 
+    override fun delete(key: String) {
+        val request = DeleteObjectRequest.builder()
+            .bucket(bucket)
+            .key(key)
+            .build()
+        s3Client.deleteObject(request)
+    }
+
+    private fun createBucketIfMissing() {
+        try {
+            s3Client.headBucket { it.bucket(bucket) }
+        } catch (exception: S3Exception) {
+            if (exception.statusCode() != NOT_FOUND_STATUS) throw exception
+            s3Client.createBucket { it.bucket(bucket) }
+            s3Client.putBucketPolicy {
+                it.bucket(bucket).policy(publicReadPolicy())
+            }
+        }
+    }
+
+    private fun publicReadPolicy(): String {
+        return """
+            {
+              "Version": "2012-10-17",
+              "Statement": [{
+                "Effect": "Allow",
+                "Principal": { "AWS": ["*"] },
+                "Action": ["s3:GetObject"],
+                "Resource": ["arn:aws:s3:::$bucket/*"]
+              }]
+            }
+        """.trimIndent()
+    }
+
+    companion object {
+        private const val NOT_FOUND_STATUS = 404
+    }
+}
