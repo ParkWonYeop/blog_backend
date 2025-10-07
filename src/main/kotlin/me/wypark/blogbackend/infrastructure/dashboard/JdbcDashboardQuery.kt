@@ -111,3 +111,41 @@ class JdbcDashboardQuery(
             FROM post p
             LEFT JOIN current_views cv ON cv.post_id = p.id
             LEFT JOIN previous_views pv ON pv.post_id = p.id
+            LEFT JOIN category c ON c.id = p.category_id
+            LEFT JOIN comment cm ON cm.post_id = p.id
+            WHERE COALESCE(cv.view_count, 0) >= :minimumViewCount
+            GROUP BY p.id, p.title, p.slug, c.name, p.view_count, cv.view_count, pv.view_count, p.created_at, p.updated_at
+            ORDER BY (COALESCE(cv.view_count, 0) - COALESCE(pv.view_count, 0)) DESC,
+                     COALESCE(cv.view_count, 0) DESC,
+                     p.id DESC
+            LIMIT :limit
+            """.trimIndent(),
+            MapSqlParameterSource()
+                .addValue("currentStartDate", currentStartDate)
+                .addValue("currentEndDate", currentEndDate)
+                .addValue("previousStartDate", previousStartDate)
+                .addValue("previousEndDate", previousEndDate)
+                .addValue("minimumViewCount", minimumViewCount)
+                .addValue("limit", limit),
+            postStatRowMapper
+        )
+    }
+
+    override fun findStalePopularPosts(
+        startDate: LocalDate,
+        endDate: LocalDate,
+        staleBefore: LocalDateTime,
+        minimumViewCount: Long,
+        limit: Int
+    ): List<DashboardPostStatRow> {
+        return jdbcTemplate.query(
+            """
+            WITH current_views AS (
+                SELECT post_id, SUM(view_count) AS view_count
+                FROM post_view_daily_stats
+                WHERE stat_date BETWEEN :startDate AND :endDate
+                GROUP BY post_id
+            )
+            SELECT p.id,
+                   p.title,
+                   p.slug,
