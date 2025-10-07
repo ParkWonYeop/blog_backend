@@ -76,3 +76,38 @@ class JdbcDashboardQuery(
             postStatRowMapper
         )
     }
+
+    override fun findRisingPosts(
+        currentStartDate: LocalDate,
+        currentEndDate: LocalDate,
+        previousStartDate: LocalDate,
+        previousEndDate: LocalDate,
+        minimumViewCount: Long,
+        limit: Int
+    ): List<DashboardPostStatRow> {
+        return jdbcTemplate.query(
+            """
+            WITH current_views AS (
+                SELECT post_id, SUM(view_count) AS view_count
+                FROM post_view_daily_stats
+                WHERE stat_date BETWEEN :currentStartDate AND :currentEndDate
+                GROUP BY post_id
+            ),
+            previous_views AS (
+                SELECT post_id, SUM(view_count) AS view_count
+                FROM post_view_daily_stats
+                WHERE stat_date BETWEEN :previousStartDate AND :previousEndDate
+                GROUP BY post_id
+            )
+            SELECT p.id,
+                   p.title,
+                   p.slug,
+                   COALESCE(c.name, '미분류') AS category_name,
+                   p.view_count,
+                   COALESCE(cv.view_count, 0) AS range_view_count,
+                   COUNT(DISTINCT cm.id) AS comment_count,
+                   p.created_at,
+                   p.updated_at
+            FROM post p
+            LEFT JOIN current_views cv ON cv.post_id = p.id
+            LEFT JOIN previous_views pv ON pv.post_id = p.id
