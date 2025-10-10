@@ -149,3 +149,40 @@ class JdbcDashboardQuery(
             SELECT p.id,
                    p.title,
                    p.slug,
+                   COALESCE(c.name, '미분류') AS category_name,
+                   p.view_count,
+                   COALESCE(cv.view_count, 0) AS range_view_count,
+                   COUNT(DISTINCT cm.id) AS comment_count,
+                   p.created_at,
+                   p.updated_at
+            FROM post p
+            JOIN current_views cv ON cv.post_id = p.id
+            LEFT JOIN category c ON c.id = p.category_id
+            LEFT JOIN comment cm ON cm.post_id = p.id
+            WHERE COALESCE(cv.view_count, 0) >= :minimumViewCount
+              AND p.updated_at <= :staleBefore
+            GROUP BY p.id, p.title, p.slug, c.name, p.view_count, cv.view_count, p.created_at, p.updated_at
+            ORDER BY COALESCE(cv.view_count, 0) DESC, p.updated_at ASC, p.id DESC
+            LIMIT :limit
+            """.trimIndent(),
+            dateRangeParams(startDate, endDate)
+                .addValue("staleBefore", staleBefore)
+                .addValue("minimumViewCount", minimumViewCount)
+                .addValue("limit", limit),
+            postStatRowMapper
+        )
+    }
+
+    override fun countStalePopularPosts(
+        startDate: LocalDate,
+        endDate: LocalDate,
+        staleBefore: LocalDateTime,
+        minimumViewCount: Long
+    ): Long {
+        return queryLong(
+            """
+            WITH current_views AS (
+                SELECT post_id, SUM(view_count) AS view_count
+                FROM post_view_daily_stats
+                WHERE stat_date BETWEEN :startDate AND :endDate
+                GROUP BY post_id
