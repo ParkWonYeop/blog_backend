@@ -186,3 +186,41 @@ class JdbcDashboardQuery(
                 FROM post_view_daily_stats
                 WHERE stat_date BETWEEN :startDate AND :endDate
                 GROUP BY post_id
+            )
+            SELECT COUNT(*)
+            FROM post p
+            JOIN current_views cv ON cv.post_id = p.id
+            WHERE COALESCE(cv.view_count, 0) >= :minimumViewCount
+              AND p.updated_at <= :staleBefore
+            """.trimIndent(),
+            dateRangeParams(startDate, endDate)
+                .addValue("staleBefore", staleBefore)
+                .addValue("minimumViewCount", minimumViewCount)
+        )
+    }
+
+    override fun findCategoryStats(startDate: LocalDate, endDate: LocalDate): List<DashboardCategoryStatRow> {
+        return jdbcTemplate.query(
+            """
+            SELECT c.id,
+                   c.name,
+                   c.parent_id,
+                   COALESCE(pc.post_count, 0) AS post_count,
+                   COALESCE(pc.view_count, 0) AS view_count,
+                   COALESCE(rv.recent_view_count, 0) AS recent_view_count,
+                   pc.last_published_at,
+                   COALESCE(cc.children_count, 0) AS children_count
+            FROM category c
+            LEFT JOIN (
+                SELECT category_id,
+                       COUNT(*) AS post_count,
+                       COALESCE(SUM(view_count), 0) AS view_count,
+                       MAX(created_at) AS last_published_at
+                FROM post
+                WHERE category_id IS NOT NULL
+                GROUP BY category_id
+            ) pc ON pc.category_id = c.id
+            LEFT JOIN (
+                SELECT p.category_id,
+                       COALESCE(SUM(s.view_count), 0) AS recent_view_count
+                FROM post p
