@@ -224,3 +224,43 @@ class JdbcDashboardQuery(
                 SELECT p.category_id,
                        COALESCE(SUM(s.view_count), 0) AS recent_view_count
                 FROM post p
+                JOIN post_view_daily_stats s ON s.post_id = p.id
+                WHERE p.category_id IS NOT NULL
+                  AND s.stat_date BETWEEN :startDate AND :endDate
+                GROUP BY p.category_id
+            ) rv ON rv.category_id = c.id
+            LEFT JOIN (
+                SELECT parent_id, COUNT(*) AS children_count
+                FROM category
+                WHERE parent_id IS NOT NULL
+                GROUP BY parent_id
+            ) cc ON cc.parent_id = c.id
+            ORDER BY c.name ASC, c.id ASC
+            """.trimIndent(),
+            dateRangeParams(startDate, endDate)
+        ) { rs, _ ->
+            DashboardCategoryStatRow(
+                id = rs.getLong("id"),
+                name = rs.getString("name"),
+                parentId = rs.getNullableLong("parent_id"),
+                postCount = rs.getLong("post_count"),
+                viewCount = rs.getLong("view_count"),
+                recentViewCount = rs.getLong("recent_view_count"),
+                lastPublishedAt = rs.getNullableLocalDateTime("last_published_at"),
+                childrenCount = rs.getLong("children_count")
+            )
+        }
+    }
+
+    override fun countUncategorizedPosts(): Long {
+        return queryLong(
+            """
+            SELECT COUNT(*)
+            FROM post p
+            LEFT JOIN category c ON c.id = p.category_id
+            WHERE p.category_id IS NULL
+               OR LOWER(c.name) IN ('uncategorized', '미분류')
+            """.trimIndent(),
+            MapSqlParameterSource()
+        )
+    }
