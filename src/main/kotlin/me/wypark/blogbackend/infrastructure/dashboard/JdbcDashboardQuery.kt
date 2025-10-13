@@ -264,3 +264,41 @@ class JdbcDashboardQuery(
             MapSqlParameterSource()
         )
     }
+
+    override fun countUnansweredComments(): Long {
+        return queryLong(
+            """
+            SELECT COUNT(*)
+            FROM comment root
+            JOIN post p ON p.id = root.post_id
+            LEFT JOIN member root_member ON root_member.id = root.member_id
+            WHERE root.parent_id IS NULL
+              AND (
+                  root.member_id IS NULL
+                  OR (
+                      root.member_id <> p.member_id
+                      AND root_member.role <> 'ROLE_ADMIN'
+                  )
+              )
+              AND NOT EXISTS (
+                  SELECT 1
+                  FROM comment child
+                  LEFT JOIN member child_member ON child_member.id = child.member_id
+                  WHERE child.parent_id = root.id
+                    AND (
+                        child.member_id = p.member_id
+                        OR child_member.role = 'ROLE_ADMIN'
+                    )
+              )
+            """.trimIndent(),
+            MapSqlParameterSource()
+        )
+    }
+
+    override fun findLastPublishedAt(): LocalDateTime? {
+        return jdbcTemplate.query(
+            "SELECT MAX(created_at) AS last_published_at FROM post",
+            MapSqlParameterSource()
+        ) { rs, _ -> rs.getNullableLocalDateTime("last_published_at") }
+            .firstOrNull()
+    }
