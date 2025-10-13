@@ -302,3 +302,37 @@ class JdbcDashboardQuery(
         ) { rs, _ -> rs.getNullableLocalDateTime("last_published_at") }
             .firstOrNull()
     }
+
+    private fun queryLong(sql: String, params: MapSqlParameterSource): Long {
+        return jdbcTemplate.queryForObject(sql, params, Number::class.java)?.toLong() ?: 0L
+    }
+
+    private fun dateRangeParams(startDate: LocalDate, endDate: LocalDate): MapSqlParameterSource {
+        return MapSqlParameterSource()
+            .addValue("startDate", startDate)
+            .addValue("endDate", endDate)
+    }
+
+    private val postStatRowMapper = RowMapper { rs: ResultSet, _: Int ->
+        DashboardPostStatRow(
+            id = rs.getLong("id"),
+            title = rs.getString("title"),
+            slug = rs.getString("slug"),
+            categoryName = rs.getString("category_name"),
+            viewCount = rs.getLong("view_count"),
+            rangeViewCount = rs.getLong("range_view_count"),
+            commentCount = rs.getLong("comment_count"),
+            createdAt = rs.getTimestamp("created_at").toLocalDateTime(),
+            updatedAt = rs.getNullableLocalDateTime("updated_at")
+        )
+    }
+
+    private fun ResultSet.getNullableLong(columnLabel: String): Long? {
+        val value = getLong(columnLabel)
+        return if (wasNull()) null else value
+    }
+
+    private fun ResultSet.getNullableLocalDateTime(columnLabel: String): LocalDateTime? {
+        return getTimestamp(columnLabel)?.toLocalDateTime()
+    }
+}
