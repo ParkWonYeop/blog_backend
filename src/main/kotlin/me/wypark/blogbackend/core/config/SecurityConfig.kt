@@ -32,3 +32,37 @@ class SecurityConfig(
         return configuration.authenticationManager
     }
 
+    @Bean
+    fun filterChain(http: HttpSecurity): SecurityFilterChain {
+        http
+            .csrf { it.disable() }
+            .httpBasic { it.disable() }
+            .formLogin { it.disable() }
+
+            .addFilter(corsFilter)
+
+            .sessionManagement {
+                it.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+            }
+            .exceptionHandling { exceptions ->
+                exceptions.authenticationEntryPoint { _, response, _ ->
+                    writeErrorResponse(
+                        response = response,
+                        status = HttpStatus.UNAUTHORIZED,
+                        code = "UNAUTHORIZED",
+                        message = "인증이 필요합니다."
+                    )
+                }
+                exceptions.accessDeniedHandler { _, response, _ ->
+                    writeErrorResponse(
+                        response = response,
+                        status = HttpStatus.FORBIDDEN,
+                        code = "FORBIDDEN",
+                        message = "관리자 권한이 필요합니다."
+                    )
+                }
+            }
+
+            .authorizeHttpRequests { auth ->
+                auth.requestMatchers("/api/auth/**").permitAll()
+
