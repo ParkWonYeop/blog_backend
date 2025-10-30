@@ -66,3 +66,35 @@ class SecurityConfig(
             .authorizeHttpRequests { auth ->
                 auth.requestMatchers("/api/auth/**").permitAll()
 
+                auth.requestMatchers(
+                    HttpMethod.GET,
+                    "/api/posts/**",
+                    "/api/categories/**",
+                    "/api/tags/**",
+                    "/api/chess-puzzles/**"
+                ).permitAll()
+                auth.requestMatchers(HttpMethod.GET, "/api/profile").permitAll()
+
+                auth.requestMatchers("/api/comments/**").permitAll()
+
+                auth.requestMatchers("/api/admin/**").hasAuthority("ROLE_ADMIN")
+
+                auth.anyRequest().authenticated()
+            }
+            .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter::class.java)
+
+        return http.build()
+    }
+
+    private fun writeErrorResponse(
+        response: HttpServletResponse,
+        status: HttpStatus,
+        code: String,
+        message: String
+    ) {
+        response.status = status.value()
+        response.contentType = MediaType.APPLICATION_JSON_VALUE
+        response.characterEncoding = StandardCharsets.UTF_8.name()
+        response.writer.write(objectMapper.writeValueAsString(ApiResponse.error(message, code)))
+    }
+}
