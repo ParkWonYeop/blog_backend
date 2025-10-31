@@ -19,3 +19,24 @@ class JwtAuthenticationFilter(
     ) {
         val token = resolveToken(request)
 
+        if (token != null && jwtProvider.isValid(token)) {
+            val authentication = jwtProvider.getAuthentication(token)
+            SecurityContextHolder.getContext().authentication = authentication
+        }
+
+        filterChain.doFilter(request, response)
+    }
+
+    private fun resolveToken(request: HttpServletRequest): String? {
+        val bearerToken = request.getHeader(AUTHORIZATION_HEADER)
+        if (bearerToken?.startsWith(BEARER_PREFIX) == true && bearerToken.length > BEARER_PREFIX.length) {
+            return bearerToken.substring(BEARER_PREFIX.length)
+        }
+        return null
+    }
+
+    companion object {
+        const val AUTHORIZATION_HEADER = "Authorization"
+        const val BEARER_PREFIX = "Bearer "
+    }
+}
