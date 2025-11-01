@@ -31,3 +31,37 @@ class JwtProvider(
         val issuedAt = clock.millis()
         val accessTokenExpiresAt = Date(issuedAt + properties.accessTokenValidity)
 
+        val accessToken = Jwts.builder()
+            .subject(authentication.name)
+            .claim(AUTHORITIES_CLAIM, authentication.authorities.joinToString(",") { it.authority })
+            .claim(MEMBER_ID_CLAIM, principal.memberId)
+            .claim(NICKNAME_CLAIM, principal.nickname)
+            .expiration(accessTokenExpiresAt)
+            .signWith(signingKey)
+            .compact()
+
+        val refreshToken = Jwts.builder()
+            .subject(authentication.name)
+            .expiration(Date(issuedAt + properties.refreshTokenValidity))
+            .signWith(signingKey)
+            .compact()
+
+        return TokenDto(
+            accessToken = accessToken,
+            refreshToken = refreshToken,
+            accessTokenExpiresIn = accessTokenExpiresAt.time
+        )
+    }
+
+    fun getAuthentication(accessToken: String): Authentication {
+        val claims = parseClaims(accessToken)
+        val authorityClaim = claims[AUTHORITIES_CLAIM]
+            ?: throw IllegalArgumentException("권한 정보가 없는 토큰입니다.")
+        val authorities: Collection<GrantedAuthority> = authorityClaim.toString()
+            .split(',')
+            .map(::SimpleGrantedAuthority)
+        val memberId = when (val claim = claims[MEMBER_ID_CLAIM]) {
+            is Number -> claim.toLong()
+            is String -> claim.toLong()
+            else -> throw IllegalArgumentException("memberId claim is missing.")
+        }
