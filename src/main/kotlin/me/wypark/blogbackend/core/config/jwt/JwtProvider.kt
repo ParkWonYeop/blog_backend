@@ -65,3 +65,39 @@ class JwtProvider(
             is String -> claim.toLong()
             else -> throw IllegalArgumentException("memberId claim is missing.")
         }
+        val principal = AuthenticatedUser(
+            memberId = memberId,
+            nickname = claims[NICKNAME_CLAIM]?.toString() ?: claims.subject,
+            username = claims.subject,
+            password = "",
+            authorities = authorities
+        )
+        return UsernamePasswordAuthenticationToken(principal, "", authorities)
+    }
+
+    override fun isValid(token: String): Boolean {
+        return try {
+            Jwts.parser().verifyWith(signingKey).build().parseSignedClaims(token)
+            true
+        } catch (_: JwtException) {
+            false
+        } catch (_: IllegalArgumentException) {
+            false
+        }
+    }
+
+    override fun extractSubject(token: String): String = parseClaims(token).subject
+
+    private fun parseClaims(accessToken: String): Claims {
+        return try {
+            Jwts.parser().verifyWith(signingKey).build().parseSignedClaims(accessToken).payload
+        } catch (exception: ExpiredJwtException) {
+            exception.claims
+        }
+    }
+    companion object {
+        private const val AUTHORITIES_CLAIM = "auth"
+        private const val MEMBER_ID_CLAIM = "memberId"
+        private const val NICKNAME_CLAIM = "nickname"
+    }
+}
