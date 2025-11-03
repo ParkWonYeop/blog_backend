@@ -21,3 +21,27 @@ class GlobalExceptionHandler {
             .body(ApiResponse.error(exception.message, exception.code))
     }
 
+    @ExceptionHandler(IllegalArgumentException::class, IllegalStateException::class)
+    fun handleLegacyBusinessException(e: RuntimeException): ResponseEntity<ApiResponse<Nothing>> {
+        return ResponseEntity
+            .badRequest()
+            .body(ApiResponse.error(e.message ?: "잘못된 요청입니다."))
+    }
+
+    @ExceptionHandler(MethodArgumentNotValidException::class)
+    fun handleValidationException(e: MethodArgumentNotValidException): ResponseEntity<ApiResponse<Nothing>> {
+        val message = e.bindingResult.fieldErrors.firstOrNull()?.defaultMessage
+            ?: "입력값이 올바르지 않습니다."
+        return ResponseEntity
+            .badRequest()
+            .body(ApiResponse.error(message))
+    }
+
+    @ExceptionHandler(Exception::class)
+    fun handleException(e: Exception): ResponseEntity<ApiResponse<Nothing>> {
+        log.error("Error occurred: ", e)
+        return ResponseEntity
+            .status(HttpStatus.INTERNAL_SERVER_ERROR)
+            .body(ApiResponse.error("서버 내부 오류가 발생했습니다."))
+    }
+}
