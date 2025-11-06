@@ -28,3 +28,30 @@ class AuthController(
             ApiResponse.success(message = "회원가입에 성공했습니다. 이메일 인증을 완료해주세요.")
         )
     }
+
+    @PostMapping("/verify")
+    fun verifyEmail(@RequestBody @Valid request: VerifyEmailRequest): ResponseEntity<ApiResponse<Nothing>> {
+        authService.verifyEmail(request.email, request.code)
+        return ResponseEntity.ok(ApiResponse.success(message = "이메일 인증이 완료되었습니다."))
+    }
+
+    @PostMapping("/login")
+    fun login(@RequestBody @Valid request: LoginRequest): ResponseEntity<ApiResponse<TokenDto>> {
+        val tokenDto = authService.login(request)
+        return ResponseEntity.ok(ApiResponse.success(tokenDto))
+    }
+
+    @PostMapping("/reissue")
+    fun reissue(@RequestBody request: ReissueRequest): ResponseEntity<ApiResponse<TokenDto>> {
+        val tokenDto = authService.reissue(request.accessToken, request.refreshToken)
+        return ResponseEntity.ok(ApiResponse.success(tokenDto))
+    }
+
+    @PostMapping("/logout")
+    fun logout(@AuthenticationPrincipal user: User): ResponseEntity<ApiResponse<Nothing>> {
+        authService.logout(user.username)
+        return ResponseEntity.ok(ApiResponse.success(message = "로그아웃 되었습니다."))
+    }
+}
+
+data class ReissueRequest(val accessToken: String, val refreshToken: String)
