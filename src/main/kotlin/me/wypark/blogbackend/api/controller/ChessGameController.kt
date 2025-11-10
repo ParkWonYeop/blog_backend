@@ -30,3 +30,36 @@ class ChessGameController(
     private val chessGameService: ChessGameService
 ) {
 
+    @PostMapping
+    fun createGame(
+        @AuthenticationPrincipal userDetails: AuthenticatedUser,
+        @Valid @RequestBody request: ChessGameCreateRequest
+    ): ResponseEntity<ApiResponse<ChessGameResponse>> {
+        return ResponseEntity
+            .status(HttpStatus.CREATED)
+            .body(ApiResponse.success(chessGameService.createGame(userDetails.memberId, request)))
+    }
+
+    @GetMapping
+    fun getGames(
+        @AuthenticationPrincipal userDetails: AuthenticatedUser,
+        @PageableDefault(size = 20, sort = ["updatedAt"], direction = Sort.Direction.DESC) pageable: Pageable
+    ): ResponseEntity<ApiResponse<Page<ChessGameSummaryResponse>>> {
+        return ResponseEntity.ok(ApiResponse.success(chessGameService.getGames(userDetails.memberId, pageable)))
+    }
+
+    @GetMapping("/stats")
+    fun getStats(
+        @AuthenticationPrincipal userDetails: AuthenticatedUser
+    ): ResponseEntity<ApiResponse<ChessGameStatsResponse>> {
+        return ResponseEntity.ok(ApiResponse.success(chessGameService.getStats(userDetails.memberId)))
+    }
+
+    @GetMapping("/{gameId}")
+    fun getGame(
+        @AuthenticationPrincipal userDetails: AuthenticatedUser,
+        @PathVariable gameId: String
+    ): ResponseEntity<ApiResponse<ChessGameResponse>> {
+        return ResponseEntity.ok(ApiResponse.success(chessGameService.getGame(userDetails.memberId, gameId)))
+    }
+
