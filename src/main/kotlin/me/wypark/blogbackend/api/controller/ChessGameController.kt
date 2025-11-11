@@ -63,3 +63,36 @@ class ChessGameController(
         return ResponseEntity.ok(ApiResponse.success(chessGameService.getGame(userDetails.memberId, gameId)))
     }
 
+    @GetMapping("/{gameId}/pgn")
+    fun getPgn(
+        @AuthenticationPrincipal userDetails: AuthenticatedUser,
+        @PathVariable gameId: String
+    ): ResponseEntity<ApiResponse<ChessGamePgnResponse>> {
+        return ResponseEntity.ok(ApiResponse.success(chessGameService.getPgn(userDetails.memberId, gameId)))
+    }
+
+    @PostMapping("/{gameId}/moves")
+    fun playMove(
+        @AuthenticationPrincipal userDetails: AuthenticatedUser,
+        @PathVariable gameId: String,
+        @Valid @RequestBody request: ChessMoveRequest
+    ): ResponseEntity<ApiResponse<ChessGameResponse>> {
+        return ResponseEntity.ok(ApiResponse.success(chessGameService.playMove(userDetails.memberId, gameId, request)))
+    }
+
+    @PostMapping("/{gameId}/resign")
+    fun resign(
+        @AuthenticationPrincipal userDetails: AuthenticatedUser,
+        @PathVariable gameId: String
+    ): ResponseEntity<ApiResponse<ChessGameResponse>> {
+        return ResponseEntity.ok(ApiResponse.success(chessGameService.resign(userDetails.memberId, gameId)))
+    }
+
+    @PostMapping("/{gameId}/undo")
+    fun undoMove(
+        @AuthenticationPrincipal userDetails: AuthenticatedUser,
+        @PathVariable gameId: String
+    ): ResponseEntity<ApiResponse<ChessGameResponse>> {
+        return ResponseEntity.ok(ApiResponse.success(chessGameService.undoMove(userDetails.memberId, gameId)))
+    }
+}
