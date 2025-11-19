@@ -21,3 +21,26 @@ class PostController(
     private val postService: PostService
 ) {
 
+    @GetMapping
+    fun getPosts(
+        @RequestParam(required = false) keyword: String?,
+        @RequestParam(required = false) category: String?,
+        @RequestParam(required = false) tag: String?,
+        @PageableDefault(size = 10, sort = ["createdAt"], direction = Sort.Direction.DESC) pageable: Pageable
+    ): ResponseEntity<ApiResponse<Page<PostSummaryResponse>>> {
+
+        return if (keyword != null || category != null || tag != null) {
+            val posts = postService.searchPosts(keyword, category, tag, pageable)
+            ResponseEntity.ok(ApiResponse.success(posts))
+        } else {
+            val posts = postService.getPosts(pageable)
+            ResponseEntity.ok(ApiResponse.success(posts))
+        }
+    }
+
+    @GetMapping("/{slug}")
+    fun getPost(@PathVariable slug: String): ResponseEntity<ApiResponse<PostResponse>> {
+        val post = postService.getPostBySlug(slug)
+        return ResponseEntity.ok(ApiResponse.success(post))
+    }
+}
