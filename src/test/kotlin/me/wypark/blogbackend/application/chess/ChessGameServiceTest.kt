@@ -75,3 +75,38 @@ class ChessGameServiceTest {
         assertEquals("1. e4 *", response.pgn)
         assertEquals(1, engine.playRequests.size)
     }
+
+    @Test
+    fun `stores player move Maia reply PGN and outcome`() {
+        val session = store.save(
+            ChessGameSession(
+                gameId = "game-1",
+                memberId = MEMBER_ID,
+                rating = 1500,
+                playerColor = ChessSide.WHITE,
+                model = "5m",
+                temperature = 0.8,
+                topP = 0.95,
+                fen = FakeMaiaEngine.START_FEN,
+                turn = ChessSide.WHITE,
+                moves = emptyList(),
+                status = "IN_PROGRESS",
+                result = null,
+                pgn = "*",
+                createdAt = Instant.parse("2026-06-19T00:00:00Z"),
+                updatedAt = Instant.parse("2026-06-19T00:00:00Z")
+            )
+        )
+        engine.playResponses.add(
+            MaiaPlayResponse(
+                move = "c7c5",
+                fen = "rnbqkbnr/pp1ppppp/8/2p5/4P3/8/PPPP1PPP/RNBQKBNR w KQkq c6 0 2",
+                turn = "white",
+                status = "IN_PROGRESS",
+                result = null,
+                pgn = "1. e4 c5 *"
+            )
+        )
+
+        val response = service.playMove(MEMBER_ID, session.gameId, ChessMoveRequest("e2e4"))
+
