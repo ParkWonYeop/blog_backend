@@ -110,3 +110,44 @@ class ChessGameServiceTest {
 
         val response = service.playMove(MEMBER_ID, session.gameId, ChessMoveRequest("e2e4"))
 
+        assertEquals(listOf("e2e4", "c7c5"), response.moves)
+        assertEquals("c7c5", response.maiaMove)
+        assertEquals("white", response.turn)
+        assertEquals("1. e4 c5 *", response.pgn)
+        assertEquals("IN_PROGRESS", response.outcome)
+        assertEquals(listOf("e2e4"), engine.playRequests.single().moves)
+        assertEquals("1. e4 c5 *", historyStore.savedSessions.last().pgn)
+    }
+
+    @Test
+    fun `records a player win when result favors player color`() {
+        val session = store.save(
+            ChessGameSession(
+                gameId = "game-1",
+                memberId = MEMBER_ID,
+                rating = 1500,
+                playerColor = ChessSide.WHITE,
+                model = "5m",
+                temperature = 0.8,
+                topP = 0.95,
+                fen = FakeMaiaEngine.START_FEN,
+                turn = ChessSide.WHITE,
+                moves = emptyList(),
+                status = "IN_PROGRESS",
+                result = null,
+                pgn = "*",
+                createdAt = Instant.parse("2026-06-19T00:00:00Z"),
+                updatedAt = Instant.parse("2026-06-19T00:00:00Z")
+            )
+        )
+        engine.playResponses.add(
+            MaiaPlayResponse(
+                move = null,
+                fen = "8/8/8/8/8/8/8/8 b - - 0 1",
+                turn = "black",
+                status = "CHECKMATE",
+                result = "1-0",
+                pgn = "1. e4 1-0"
+            )
+        )
+
