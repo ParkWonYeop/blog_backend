@@ -151,3 +151,41 @@ class ChessGameServiceTest {
             )
         )
 
+        val response = service.playMove(MEMBER_ID, session.gameId, ChessMoveRequest("e2e4"))
+
+        assertEquals("WIN", response.outcome)
+        assertEquals("WIN", historyStore.savedSessions.last().outcome().name)
+    }
+
+    @Test
+    fun `resigns an in-progress game as a player loss`() {
+        store.save(
+            ChessGameSession(
+                gameId = "game-1",
+                memberId = MEMBER_ID,
+                rating = 1500,
+                playerColor = ChessSide.WHITE,
+                model = "5m",
+                temperature = 0.8,
+                topP = 0.95,
+                fen = FakeMaiaEngine.START_FEN,
+                turn = ChessSide.WHITE,
+                moves = listOf("e2e4", "c7c5"),
+                status = "IN_PROGRESS",
+                result = null,
+                pgn = "[Event \"Maia3\"]\n[Result \"*\"]\n\n1. e4 c5 *",
+                createdAt = Instant.parse("2026-06-19T00:00:00Z"),
+                updatedAt = Instant.parse("2026-06-19T00:00:00Z")
+            )
+        )
+
+        val response = service.resign(MEMBER_ID, "game-1")
+
+        assertEquals("RESIGNED", response.status)
+        assertEquals("0-1", response.result)
+        assertEquals("LOSS", response.outcome)
+        assertEquals(true, response.pgn.contains("[Result \"0-1\"]"))
+        assertEquals(true, response.pgn.trimEnd().endsWith("0-1"))
+        assertEquals("LOSS", historyStore.savedSessions.last().outcome().name)
+    }
+
