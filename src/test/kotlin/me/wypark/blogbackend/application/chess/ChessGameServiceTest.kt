@@ -189,3 +189,42 @@ class ChessGameServiceTest {
         assertEquals("LOSS", historyStore.savedSessions.last().outcome().name)
     }
 
+    @Test
+    fun `undo removes the last player move and Maia reply`() {
+        store.save(
+            ChessGameSession(
+                gameId = "game-1",
+                memberId = MEMBER_ID,
+                rating = 1500,
+                playerColor = ChessSide.WHITE,
+                model = "5m",
+                temperature = 0.8,
+                topP = 0.95,
+                fen = "rnbqkb1r/pp1ppppp/5n2/2p5/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 2 3",
+                turn = ChessSide.WHITE,
+                moves = listOf("e2e4", "c7c5", "g1f3", "g8f6"),
+                status = "IN_PROGRESS",
+                result = null,
+                pgn = "1. e4 c5 2. Nf3 Nf6 *",
+                createdAt = Instant.parse("2026-06-19T00:00:00Z"),
+                updatedAt = Instant.parse("2026-06-19T00:00:00Z")
+            )
+        )
+        engine.stateResponses.add(
+            MaiaStateResponse(
+                fen = "rnbqkbnr/pp1ppppp/8/2p5/4P3/8/PPPP1PPP/RNBQKBNR w KQkq c6 0 2",
+                turn = "white",
+                status = "IN_PROGRESS",
+                result = null,
+                pgn = "1. e4 c5 *"
+            )
+        )
+
+        val response = service.undoMove(MEMBER_ID, "game-1")
+
+        assertEquals(listOf("e2e4", "c7c5"), response.moves)
+        assertEquals("white", response.turn)
+        assertEquals("1. e4 c5 *", response.pgn)
+        assertEquals(listOf("e2e4", "c7c5"), engine.stateRequests.last().moves)
+        assertEquals("IN_PROGRESS", historyStore.savedSessions.last().outcome().name)
+    }
