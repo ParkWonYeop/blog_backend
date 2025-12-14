@@ -228,3 +228,41 @@ class ChessGameServiceTest {
         assertEquals(listOf("e2e4", "c7c5"), engine.stateRequests.last().moves)
         assertEquals("IN_PROGRESS", historyStore.savedSessions.last().outcome().name)
     }
+
+    @Test
+    fun `undo black game keeps Maia opening move`() {
+        store.save(
+            ChessGameSession(
+                gameId = "game-1",
+                memberId = MEMBER_ID,
+                rating = 1500,
+                playerColor = ChessSide.BLACK,
+                model = "5m",
+                temperature = 0.8,
+                topP = 0.95,
+                fen = "rnbqkbnr/pppp1ppp/8/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R b KQkq - 1 2",
+                turn = ChessSide.BLACK,
+                moves = listOf("e2e4", "e7e5", "g1f3"),
+                status = "IN_PROGRESS",
+                result = null,
+                pgn = "1. e4 e5 2. Nf3 *",
+                createdAt = Instant.parse("2026-06-19T00:00:00Z"),
+                updatedAt = Instant.parse("2026-06-19T00:00:00Z")
+            )
+        )
+        engine.stateResponses.add(
+            MaiaStateResponse(
+                fen = "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1",
+                turn = "black",
+                status = "IN_PROGRESS",
+                result = null,
+                pgn = "1. e4 *"
+            )
+        )
+
+        val response = service.undoMove(MEMBER_ID, "game-1")
+
+        assertEquals(listOf("e2e4"), response.moves)
+        assertEquals("black", response.turn)
+        assertEquals(listOf("e2e4"), engine.stateRequests.last().moves)
+    }
