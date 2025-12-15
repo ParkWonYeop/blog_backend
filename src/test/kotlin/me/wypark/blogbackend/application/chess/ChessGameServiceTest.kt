@@ -266,3 +266,42 @@ class ChessGameServiceTest {
         assertEquals("black", response.turn)
         assertEquals(listOf("e2e4"), engine.stateRequests.last().moves)
     }
+
+    @Test
+    fun `rejects undo when player has not moved yet`() {
+        store.save(
+            ChessGameSession(
+                gameId = "game-1",
+                memberId = MEMBER_ID,
+                rating = 1500,
+                playerColor = ChessSide.BLACK,
+                model = "5m",
+                temperature = 0.8,
+                topP = 0.95,
+                fen = FakeMaiaEngine.START_FEN,
+                turn = ChessSide.BLACK,
+                moves = listOf("e2e4"),
+                status = "IN_PROGRESS",
+                result = null,
+                pgn = "1. e4 *",
+                createdAt = Instant.parse("2026-06-19T00:00:00Z"),
+                updatedAt = Instant.parse("2026-06-19T00:00:00Z")
+            )
+        )
+
+        assertFailsWith<IllegalArgumentException> {
+            service.undoMove(MEMBER_ID, "game-1")
+        }
+    }
+
+    @Test
+    fun `rejects move when it is not player's turn`() {
+        store.save(
+            ChessGameSession(
+                gameId = "game-1",
+                memberId = MEMBER_ID,
+                rating = 1500,
+                playerColor = ChessSide.WHITE,
+                model = "5m",
+                temperature = 0.8,
+                topP = 0.95,
