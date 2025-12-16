@@ -305,3 +305,41 @@ class ChessGameServiceTest {
                 model = "5m",
                 temperature = 0.8,
                 topP = 0.95,
+                fen = FakeMaiaEngine.START_FEN,
+                turn = ChessSide.BLACK,
+                moves = listOf("e2e4"),
+                status = "IN_PROGRESS",
+                result = null,
+                pgn = "1. e4 *",
+                createdAt = Instant.parse("2026-06-19T00:00:00Z"),
+                updatedAt = Instant.parse("2026-06-19T00:00:00Z")
+            )
+        )
+
+        assertFailsWith<IllegalArgumentException> {
+            service.playMove(MEMBER_ID, "game-1", ChessMoveRequest("d2d4"))
+        }
+    }
+
+    @Test
+    fun `rejects access to another member game`() {
+        store.save(
+            ChessGameSession(
+                gameId = "game-1",
+                memberId = OTHER_MEMBER_ID,
+                rating = 1500,
+                playerColor = ChessSide.WHITE,
+                model = "5m",
+                temperature = 0.8,
+                topP = 0.95,
+                fen = FakeMaiaEngine.START_FEN,
+                turn = ChessSide.WHITE,
+                moves = emptyList(),
+                status = "IN_PROGRESS",
+                result = null,
+                pgn = "*",
+                createdAt = Instant.parse("2026-06-19T00:00:00Z"),
+                updatedAt = Instant.parse("2026-06-19T00:00:00Z")
+            )
+        )
+
