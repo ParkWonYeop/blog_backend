@@ -343,3 +343,38 @@ class ChessGameServiceTest {
             )
         )
 
+        assertFailsWith<IllegalArgumentException> {
+            service.getGame(MEMBER_ID, "game-1")
+        }
+    }
+
+    companion object {
+        private const val MEMBER_ID = 1L
+        private const val OTHER_MEMBER_ID = 2L
+    }
+}
+
+private class FakeChessGameStore : ChessGameStore {
+    private val sessions = mutableMapOf<String, ChessGameSession>()
+
+    override fun save(session: ChessGameSession): ChessGameSession {
+        sessions[session.gameId] = session
+        return session
+    }
+
+    override fun findById(gameId: String): ChessGameSession? = sessions[gameId]
+}
+
+private class FakeChessGameHistoryStore : ChessGameHistoryStore {
+    val savedSessions = mutableListOf<ChessGameSession>()
+
+    override fun save(session: ChessGameSession) {
+        savedSessions.add(session)
+    }
+
+    override fun findByGameIdAndMemberId(gameId: String, memberId: Long): ChessGameRecord? = null
+
+    override fun findAllByMemberId(memberId: Long, pageable: Pageable): Page<ChessGameRecord> {
+        return PageImpl(emptyList(), pageable, 0)
+    }
+
