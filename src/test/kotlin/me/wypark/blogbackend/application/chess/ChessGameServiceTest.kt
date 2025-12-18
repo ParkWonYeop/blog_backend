@@ -378,3 +378,44 @@ private class FakeChessGameHistoryStore : ChessGameHistoryStore {
         return PageImpl(emptyList(), pageable, 0)
     }
 
+    override fun getStats(memberId: Long): ChessGameHistoryStats {
+        return ChessGameHistoryStats(
+            total = 0,
+            inProgress = 0,
+            wins = 0,
+            losses = 0,
+            draws = 0,
+            unknown = 0
+        )
+    }
+}
+
+private class FakeMaiaEngine : MaiaEngine {
+    val stateResponses = ArrayDeque<MaiaStateResponse>()
+    val stateRequests = mutableListOf<MaiaStateRequest>()
+    val playResponses = ArrayDeque<MaiaPlayResponse>()
+    val playRequests = mutableListOf<MaiaPlayRequest>()
+
+    override fun getState(request: MaiaStateRequest): MaiaStateResponse {
+        stateRequests.add(request)
+        if (stateResponses.isNotEmpty()) {
+            return stateResponses.removeFirst()
+        }
+        return MaiaStateResponse(
+            fen = START_FEN,
+            turn = "white",
+            status = "IN_PROGRESS",
+            result = null,
+            pgn = "*"
+        )
+    }
+
+    override fun playMove(request: MaiaPlayRequest): MaiaPlayResponse {
+        playRequests.add(request)
+        return playResponses.removeFirst()
+    }
+
+    companion object {
+        const val START_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+    }
+}
