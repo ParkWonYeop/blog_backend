@@ -24,3 +24,30 @@ class ImageServiceTest {
         assertEquals("https://images.example/${storage.key}", url)
     }
 
+    @Test
+    fun `delete remains fail safe when storage cleanup fails`() {
+        val service = ImageService(object : ImageStorage {
+            override fun upload(key: String, contentType: String?, size: Long, content: InputStream) = ""
+            override fun delete(key: String) = error("storage unavailable")
+        })
+
+        service.deleteImage("orphan.png")
+    }
+
+    private class RecordingImageStorage : ImageStorage {
+        lateinit var key: String
+        var contentType: String? = null
+        var size: Long = 0
+        var content: ByteArray = byteArrayOf()
+
+        override fun upload(key: String, contentType: String?, size: Long, content: InputStream): String {
+            this.key = key
+            this.contentType = contentType
+            this.size = size
+            this.content = content.readAllBytes()
+            return "https://images.example/$key"
+        }
+
+        override fun delete(key: String) = Unit
+    }
+}
