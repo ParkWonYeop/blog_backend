@@ -32,3 +32,37 @@ class PostSearchIntegrationTest {
     @Autowired
     lateinit var postRepository: PostRepository
 
+    @Test
+    fun `search maps query projection without exposing persistence entities`() {
+        val member = memberRepository.save(
+            Member(
+                email = "search@example.com",
+                password = "encoded",
+                nickname = "searcher",
+                role = Role.ROLE_ADMIN,
+                isVerified = true
+            )
+        )
+        val category = categoryRepository.save(Category("Backend"))
+        postRepository.save(
+            Post(
+                title = "Kotlin architecture",
+                content = "layered application design",
+                slug = "kotlin-architecture",
+                member = member,
+                category = category
+            )
+        )
+
+        val result = postService.searchPosts(
+            keyword = "KOTLIN",
+            categoryName = "Backend",
+            tagName = null,
+            pageable = PageRequest.of(0, 10)
+        )
+
+        assertEquals(1L, result.totalElements)
+        assertEquals("kotlin-architecture", result.single().slug)
+        assertEquals("Backend", result.single().categoryName)
+    }
+}
