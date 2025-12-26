@@ -61,5 +61,5 @@ cloud:
 jwt:
   # 보안 경고: 실제 배포 시에는 절대 코드에 비밀키를 남기지 마세요. 환경변수로 주입받으세요.
   secret: ${JWT_SECRET:v3ryS3cr3tK3yF0rMyB10gPr0j3ctM4k3ItL0ng3rTh4n32Byt3s!!}
-  access-token-validity: 1800000  # 30분
-  refresh-token-validity: 604800000 # 7일
+  access-token-validity: 600000
+  refresh-token-validity: 604800000
