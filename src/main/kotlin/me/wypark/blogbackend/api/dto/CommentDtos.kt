@@ -7,23 +7,28 @@ import java.time.LocalDateTime
 data class CommentResponse(
     val id: Long,
     val content: String,
-    val author: String, // 회원 닉네임 또는 비회원 닉네임
+    val author: String,
+    val isPostAuthor: Boolean, // 👈 [추가] 게시글 작성자 여부
     val createdAt: LocalDateTime,
-    val children: List<CommentResponse> // 대댓글 리스트
+    val children: List<CommentResponse>
 ) {
     companion object {
         fun from(comment: Comment): CommentResponse {
+            // 게시글 작성자 ID와 댓글 작성자(회원) ID가 같은지 비교
+            // comment.member는 비회원일 경우 null이므로 안전하게 처리됨
+            val isAuthor = comment.member?.id == comment.post.member.id
+
             return CommentResponse(
                 id = comment.id!!,
                 content = comment.content,
-                author = comment.getAuthorName(), // Entity에 만들어둔 편의 메서드 사용
+                author = comment.getAuthorName(),
+                isPostAuthor = isAuthor, // 👈 계산된 값 주입
                 createdAt = comment.createdAt,
-                children = comment.children.map { from(it) } // 재귀적으로 자식 변환
+                children = comment.children.map { from(it) }
             )
         }
     }
 }
-
 // [요청] 댓글 작성
 data class CommentSaveRequest(
     val postSlug: String,
