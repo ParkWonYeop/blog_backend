@@ -21,6 +21,22 @@ spring:
         highlight_sql: true    # 쿼리 색상 강조 (가독성 UP)
     open-in-view: false        # OSIV 종료 (DB 커넥션 최적화)
 
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: ${MAIL_USERNAME} # 환경변수 처리 추천
+    password: ${MAIL_PASSWORD} # 앱 비밀번호 (16자리)
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+            required: true
+          connectiontimeout: 5000
+          timeout: 5000
+          writetimeout: 5000
+
   # 3. Redis 설정
   data:
     redis:

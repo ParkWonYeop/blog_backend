@@ -10,7 +10,7 @@ services:
       # Database
       - SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/blog_db
       - SPRING_DATASOURCE_USERNAME=${DB_USER}
-      - SPRING_DATASOURCE_PASSWORD=your_password
+      - SPRING_DATASOURCE_PASSWORD=${DB_PASS}
       # Redis
       - SPRING_DATA_REDIS_HOST=redis
       - SPRING_DATA_REDIS_PORT=6379
@@ -19,6 +19,18 @@ services:
       - CLOUD_AWS_CREDENTIALS_SECRET_KEY=password
       - CLOUD_AWS_REGION_STATIC=ap-northeast-2
       - CLOUD_AWS_S3_ENDPOINT=http://minio:9000
+      # SMTP 메일 설정
+      - SPRING_MAIL_HOST=smtp.gmail.com
+      - SPRING_MAIL_PORT=587
+      - SPRING_MAIL_USERNAME=${MAIL_USER}
+      - SPRING_MAIL_PASSWORD=${MAIL_PASS}
+      # SMTP 세부 설정
+      - SPRING_MAIL_PROPERTIES_MAIL_SMTP_AUTH=true
+      - SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE=true
+      - SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_REQUIRED=true
+      - SPRING_MAIL_PROPERTIES_MAIL_SMTP_CONNECTIONTIMEOUT=5000
+      - SPRING_MAIL_PROPERTIES_MAIL_SMTP_TIMEOUT=5000
+      - SPRING_MAIL_PROPERTIES_MAIL_SMTP_WRITETIMEOUT=5000
     depends_on:
       db:
         condition: service_healthy
@@ -35,13 +47,13 @@ services:
     ports:
       - "5432:5432"
     environment:
-      POSTGRES_USER: wypark
-      POSTGRES_PASSWORD: your_password
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASS}
       POSTGRES_DB: blog_db
     volumes:
       - ./postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U wypark -d blog_db"]
+      test: [ "CMD-SHELL", "pg_isready -U ${DB_USER} -d blog_db" ]
       interval: 5s
       retries: 5
     networks:
@@ -53,7 +65,7 @@ services:
     container_name: blog-redis
     restart: always
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: [ "CMD", "redis-cli", "ping" ]
       interval: 5s
       retries: 5
     networks:
