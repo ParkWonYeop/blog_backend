@@ -1,0 +1,53 @@
+services:
+  # 백엔드 애플리케이션
+  blog-api:
+    build: .
+    container_name: blog-api
+    restart: always
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/blog_db
+      - SPRING_DATASOURCE_USERNAME=${DB_USER}
+      - SPRING_DATASOURCE_PASSWORD=your_password
+      - SPRING_DATA_REDIS_HOST=redis
+      - SPRING_DATA_REDIS_PORT=6379
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - blog-net
+
+  # 데이터베이스 (PostgreSQL 17 추천)
+  db:
+    image: postgres:17-alpine
+    container_name: blog-db
+    restart: always
+    environment:
+      POSTGRES_USER: wypark
+      POSTGRES_PASSWORD: your_password
+      POSTGRES_DB: blog_db
+    volumes:
+      - ./postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U wypark -d blog_db"]
+      interval: 5s
+      retries: 5
+    networks:
+      - blog-net
+
+  # 캐시 서버 (Redis 7)
+  redis:
+    image: redis:7-alpine
+    container_name: blog-redis
+    restart: always
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      retries: 5
+    networks:
+      - blog-net
+
+networks:
+  blog-net:
+    driver: bridge
