@@ -12,7 +12,7 @@ import java.util.*
 @Service
 class ImageService(
     private val s3Client: S3Client,
-    @Value("\${cloud.aws.s3.endpoint}") private val endpoint: String
+    @Value("\${spring.cloud.aws.s3.endpoint:http://minio:9000}") private val endpoint: String
 ) {
     private val bucketName = "blog-images" // 버킷 이름
 

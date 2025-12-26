@@ -43,19 +43,18 @@ spring:
       host: redis # Docker 서비스명
       port: 6379
 
-# 4. AWS S3 / MinIO 설정 (아까 이야기한 부분)
-cloud:
-  aws:
-    s3:
-      bucket: my-blog-bucket # MinIO 콘솔에서 미리 생성해야 함
-      endpoint: http://minio:9000 # Docker 내부 통신용
-    credentials:
-      access-key: admin
-      secret-key: password
-    region:
-      static: ap-northeast-2
-    stack:
-      auto: false
+  cloud:
+    aws:
+      s3:
+        bucket: my-blog-bucket
+        endpoint: http://minio:9000
+      credentials:
+        access-key: admin
+        secret-key: password
+      region:
+        static: ap-northeast-2
+      stack:
+        auto: false
 
 # 5. JWT 설정
 jwt:

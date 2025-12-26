@@ -32,7 +32,7 @@ class SecurityConfig(
                 auth.requestMatchers("/api/auth/**").permitAll()
                 auth.requestMatchers(HttpMethod.GET, "/api/posts/**", "/api/categories/**", "/api/tags/**").permitAll()
                 auth.requestMatchers(HttpMethod.POST, "/api/comments/**").permitAll() // 비회원 댓글 허용
-                auth.requestMatchers("/api/admin/**").hasRole("ADMIN")
+                auth.requestMatchers("/api/admin/**").hasAuthority("ROLE_ADMIN")
                 auth.anyRequest().authenticated()
             }
             // 필터 등록: UsernamePasswordAuthenticationFilter 앞에 JwtFilter를 실행

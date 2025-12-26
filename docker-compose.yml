@@ -15,10 +15,10 @@ services:
       - SPRING_DATA_REDIS_HOST=redis
       - SPRING_DATA_REDIS_PORT=6379
       # AWS S3 / MinIO (Docker 내부 통신용)
-      - CLOUD_AWS_CREDENTIALS_ACCESS_KEY=admin
-      - CLOUD_AWS_CREDENTIALS_SECRET_KEY=password
-      - CLOUD_AWS_REGION_STATIC=ap-northeast-2
-      - CLOUD_AWS_S3_ENDPOINT=http://minio:9000
+      - SPRING_CLOUD_AWS_CREDENTIALS_ACCESS_KEY=admin
+      - SPRING_CLOUD_AWS_CREDENTIALS_SECRET_KEY=password
+      - SPRING_CLOUD_AWS_REGION_STATIC=ap-northeast-2
+      - SPRING_CLOUD_AWS_S3_ENDPOINT=http://minio:9000
       # SMTP 메일 설정
       - SPRING_MAIL_HOST=smtp.gmail.com
       - SPRING_MAIL_PORT=587

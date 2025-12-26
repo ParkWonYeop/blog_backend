@@ -56,7 +56,7 @@ data class PostSummaryResponse(
 data class PostSaveRequest(
     val title: String,
     val content: String, // 마크다운 원문
-    val slug: String,
+    val slug: String? = null,
     val categoryId: Long? = null,
     val tags: List<String> = emptyList() // 태그는 나중에 구현
 )

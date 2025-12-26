@@ -49,18 +49,38 @@ class PostService(
      */
     @Transactional
     fun createPost(request: PostSaveRequest, email: String): Long {
-        if (postRepository.existsBySlug(request.slug)) { throw IllegalArgumentException("이미 존재하는 Slug입니다.") }
-        val member = memberRepository.findByEmail(email) ?: throw IllegalArgumentException("회원 없음")
+        val member = memberRepository.findByEmail(email)
+            ?: throw IllegalArgumentException("회원 없음")
+
         val category = request.categoryId?.let { categoryRepository.findByIdOrNull(it) }
 
+        val rawSlug = if (!request.slug.isNullOrBlank()) {
+            request.slug
+        } else {
+            request.title.trim().replace("\\s+".toRegex(), "-").lowercase()
+        }
+
+        // (2) DB 중복 검사: 중복되면 -1, -2, -3... 붙여나감
+        var uniqueSlug = rawSlug
+        var count = 1
+
+        while (postRepository.existsBySlug(uniqueSlug)) {
+            uniqueSlug = "$rawSlug-$count"
+            count++
+        }
+        // ---------------------------------------------------------
+
+        // 2. 게시글 객체 생성 (uniqueSlug 사용)
         val post = Post(
             title = request.title,
             content = request.content,
-            slug = request.slug,
+            slug = uniqueSlug, // 👈 중복 처리된 슬러그
             member = member,
             category = category
         )
 
+        // 3. 태그 처리 (작성하신 로직 그대로 활용)
+        // 리스트를 순회하며 없으면 저장(save), 있으면 조회(find)
         val postTags = request.tags.map { tagName ->
             val tag = tagRepository.findByName(tagName)
                 ?: tagRepository.save(Tag(name = tagName))
@@ -68,6 +88,7 @@ class PostService(
             PostTag(post = post, tag = tag)
         }
 
+        // 연관관계 편의 메서드 사용 (Post 내부에 구현되어 있다고 가정)
         post.addTags(postTags)
 
         return postRepository.save(post).id!!
