@@ -18,7 +18,50 @@
 * **Markdown Parser** (Content)
 
 ---
+## 🐳 Infrastructure & Deployment
+안정적이고 독립적인 실행 환경을 보장하기 위해 **Docker** 기반의 컨테이너 아키텍처를 구축했습니다.
 
+### 🏗️ Dockerfile Highlights
+제공된 Dockerfile은 보안과 이미지 경량화에 초점을 맞춰 설계되었습니다.
+
+- **Multi-stage Build**: 빌드 환경(JDK)과 실행 환경(JRE)을 분리하여 최종 이미지 크기를 최소화했습니다.
+
+- **Alpine Linux**: 경량화된 alpine 베이스 이미지를 사용하여 배포 효율성을 높였습니다.
+
+- **Security (Non-root)**: 컨테이너 탈취 시 호스트 시스템 보호를 위해 루트 권한이 아닌 spring 전용 유저로 애플리케이션을 실행합니다.
+
+<details> <summary>👉 <b>Dockerfile 미리보기</b></summary>
+
+```Dockerfile
+# 1. Build Stage
+FROM eclipse-temurin:21-jdk-alpine AS build
+WORKDIR /app
+COPY . .
+RUN ./gradlew clean bootJar -x test
+
+# 2. Run Stage
+FROM eclipse-temurin:21-jre-alpine
+WORKDIR /app
+# 보안을 위한 전용 유저 생성 및 권한 부여
+RUN addgroup -S spring && adduser -S spring -G spring
+COPY --from=build --chown=spring:spring /app/build/libs/*.jar app.jar
+USER spring:spring
+
+ENTRYPOINT ["java", "-jar", "-Dspring.profiles.active=prod", "app.jar"]
+```
+</details>
+
+### 🚀 How to Run (with Docker Compose)
+DB(PostgreSQL), Cache(Redis), Object Storage(MinIO)를 포함한 전체 인프라를 한 번에 실행할 수 있습니다.
+
+```Bash
+# 1. 프로젝트 빌드 및 컨테이너 실행
+$ docker-compose up -d --build
+
+# 2. 로그 확인
+$ docker-compose logs -f blog-api
+````
+---
 ## 🔌 API Reference
 
 **Base URL**: `http://localhost:8080`  
