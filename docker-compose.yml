@@ -1,15 +1,24 @@
 services:
-  # 백엔드 애플리케이션
+  # 1. 백엔드 애플리케이션
   blog-api:
     build: .
     container_name: blog-api
     restart: always
+    ports:
+      - "8080:8080"
     environment:
+      # Database
       - SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/blog_db
       - SPRING_DATASOURCE_USERNAME=${DB_USER}
       - SPRING_DATASOURCE_PASSWORD=your_password
+      # Redis
       - SPRING_DATA_REDIS_HOST=redis
       - SPRING_DATA_REDIS_PORT=6379
+      # AWS S3 / MinIO (Docker 내부 통신용)
+      - CLOUD_AWS_CREDENTIALS_ACCESS_KEY=admin
+      - CLOUD_AWS_CREDENTIALS_SECRET_KEY=password
+      - CLOUD_AWS_REGION_STATIC=ap-northeast-2
+      - CLOUD_AWS_S3_ENDPOINT=http://minio:9000
     depends_on:
       db:
         condition: service_healthy
@@ -18,11 +27,13 @@ services:
     networks:
       - blog-net
 
-  # 데이터베이스 (PostgreSQL 17 추천)
+  # 2. 데이터베이스 (PostgreSQL)
   db:
     image: postgres:17-alpine
     container_name: blog-db
     restart: always
+    ports:
+      - "5432:5432"
     environment:
       POSTGRES_USER: wypark
       POSTGRES_PASSWORD: your_password
@@ -36,7 +47,7 @@ services:
     networks:
       - blog-net
 
-  # 캐시 서버 (Redis 7)
+  # 3. 캐시 서버 (Redis)
   redis:
     image: redis:7-alpine
     container_name: blog-redis
@@ -45,6 +56,22 @@ services:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
       retries: 5
+    networks:
+      - blog-net
+
+  # 4. 오브젝트 스토리지 (MinIO)
+  minio:
+    image: minio/minio
+    container_name: minio
+    ports:
+      - "9000:9000" # API 통신
+      - "9001:9001" # 웹 콘솔
+    environment:
+      MINIO_ROOT_USER: "admin"
+      MINIO_ROOT_PASSWORD: "password"
+    command: server /data --console-address ":9001"
+    volumes:
+      - ./minio_data:/data
     networks:
       - blog-net
 

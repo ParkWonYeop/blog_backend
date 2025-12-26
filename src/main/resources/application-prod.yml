@@ -1,19 +1,49 @@
 spring:
+  application:
+    name: blog-api
+
+  # 1. 데이터베이스 설정
   datasource:
+    # Docker 내부 통신용
     url: jdbc:postgresql://db:5432/blog_db
-    username: ${SPRING_DATASOURCE_USERNAME}
-    password: your_password
+    username: ${SPRING_DATASOURCE_USERNAME:wypark}
+    password: ${SPRING_DATASOURCE_PASSWORD:your_password}
+    driver-class-name: org.postgresql.Driver
+
+  # 2. JPA 설정
   jpa:
     hibernate:
       ddl-auto: update
     properties:
       hibernate:
-        format_sql: true
+        format_sql: true       # 쿼리 줄바꿈
+        show_sql: true         # 쿼리 출력
+        highlight_sql: true    # 쿼리 색상 강조 (가독성 UP)
+    open-in-view: false        # OSIV 종료 (DB 커넥션 최적화)
+
+  # 3. Redis 설정
   data:
     redis:
-      host: redis
+      host: redis # Docker 서비스명
       port: 6379
+
+# 4. AWS S3 / MinIO 설정 (아까 이야기한 부분)
+cloud:
+  aws:
+    s3:
+      bucket: my-blog-bucket # MinIO 콘솔에서 미리 생성해야 함
+      endpoint: http://minio:9000 # Docker 내부 통신용
+    credentials:
+      access-key: admin
+      secret-key: password
+    region:
+      static: ap-northeast-2
+    stack:
+      auto: false
+
+# 5. JWT 설정
 jwt:
-  secret: ${JWT_SECRET}
-  access-token-validity: 1800000  # 30분 (ms)
-  refresh-token-validity: 604800000 # 7일 (ms)
+  # 보안 경고: 실제 배포 시에는 절대 코드에 비밀키를 남기지 마세요. 환경변수로 주입받으세요.
+  secret: ${JWT_SECRET:v3ryS3cr3tK3yF0rMyB10gPr0j3ctM4k3ItL0ng3rTh4n32Byt3s!!}
+  access-token-validity: 1800000  # 30분
+  refresh-token-validity: 604800000 # 7일
