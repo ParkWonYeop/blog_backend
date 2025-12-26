@@ -80,5 +80,5 @@ $ docker-compose logs -f blog-api
 
 ---
 ## 📝 관련 문서
-- [**ENDPOINT**](https://affine.wypark.me/workspace/f85df0c4-a315-4166-94a8-6558cdafff1d/p13joh_beKNJ6R-I9KrFW)  
-- [**API 명세서**](https://affine.wypark.me/workspace/f85df0c4-a315-4166-94a8-6558cdafff1d/7fRNXK9utxG4mcekWivGK)
+- [**ENDPOINT**](https://affine.wypark.me/workspace/f85df0c4-a315-4166-94a8-6558cdafff1d/_csY9ZzOnSbt4bTnIA_9w)  
+- [**API 명세서**](https://affine.wypark.me/workspace/f85df0c4-a315-4166-94a8-6558cdafff1d/9axPww7llEcSH3nOZzi-m)
