@@ -22,3 +22,29 @@ class JwtProviderTest {
         clock = Clock.fixed(Instant.parse("2026-06-19T00:00:00Z"), ZoneOffset.UTC)
     )
 
+    @Test
+    fun `access token authentication restores custom user details`() {
+        val originalPrincipal = AuthenticatedUser(
+            memberId = 2L,
+            nickname = "tester",
+            username = "tester@example.com",
+            password = "",
+            authorities = listOf(SimpleGrantedAuthority("ROLE_ADMIN"))
+        )
+        val token = jwtProvider.generate(
+            UsernamePasswordAuthenticationToken(
+                originalPrincipal,
+                "",
+                originalPrincipal.authorities
+            )
+        )
+
+        val authentication = jwtProvider.getAuthentication(token.accessToken)
+        val principal = assertIs<AuthenticatedUser>(authentication.principal)
+
+        assertEquals(2L, principal.memberId)
+        assertEquals("tester", principal.nickname)
+        assertEquals("tester@example.com", principal.username)
+        assertEquals("ROLE_ADMIN", authentication.authorities.single().authority)
+    }
+}
