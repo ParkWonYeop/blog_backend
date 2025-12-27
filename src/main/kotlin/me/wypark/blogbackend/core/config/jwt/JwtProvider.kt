@@ -4,6 +4,7 @@ import io.jsonwebtoken.*
 import io.jsonwebtoken.io.Decoders
 import io.jsonwebtoken.security.Keys
 import me.wypark.blogbackend.api.dto.TokenDto
+import me.wypark.blogbackend.domain.auth.CustomUserDetails // 👈 Import 추가
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken
 import org.springframework.security.core.Authentication
@@ -27,11 +28,18 @@ class JwtProvider(
         val authorities = authentication.authorities.joinToString(",") { it.authority }
         val now = Date().time
 
+        // 👇 [수정] Principal을 CustomUserDetails로 캐스팅하여 정보 추출
+        val principal = authentication.principal as CustomUserDetails
+        val memberId = principal.memberId
+        val nickname = principal.nickname
+
         // Access Token 생성
         val accessTokenExpiresIn = Date(now + accessTokenValidity)
         val accessToken = Jwts.builder()
-            .subject(authentication.name) // email 또는 id
+            .subject(authentication.name) // email
             .claim("auth", authorities)   // 권한 정보 (ROLE_USER 등)
+            .claim("memberId", memberId)  // 👈 [추가] 프론트엔드 식별용 ID
+            .claim("nickname", nickname)  // 👈 [추가] 프론트엔드 표기용 닉네임
             .expiration(accessTokenExpiresIn)
             .signWith(key)
             .compact()

@@ -31,7 +31,8 @@ class SecurityConfig(
             .authorizeHttpRequests { auth ->
                 auth.requestMatchers("/api/auth/**").permitAll()
                 auth.requestMatchers(HttpMethod.GET, "/api/posts/**", "/api/categories/**", "/api/tags/**").permitAll()
-                auth.requestMatchers(HttpMethod.POST, "/api/comments/**").permitAll() // 비회원 댓글 허용
+                auth.requestMatchers("/api/comments/**").permitAll() // 비회원 댓글 허용
+                auth.requestMatchers(HttpMethod.GET, "/api/profile").permitAll()
                 auth.requestMatchers("/api/admin/**").hasAuthority("ROLE_ADMIN")
                 auth.anyRequest().authenticated()
             }

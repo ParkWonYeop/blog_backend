@@ -5,28 +5,28 @@ import com.querydsl.core.types.Order
 import com.querydsl.core.types.OrderSpecifier
 import com.querydsl.core.types.Projections
 import com.querydsl.core.types.dsl.BooleanExpression
-import com.querydsl.core.types.dsl.PathBuilder
 import com.querydsl.jpa.impl.JPAQueryFactory
 import me.wypark.blogbackend.api.dto.PostSummaryResponse
 import me.wypark.blogbackend.domain.post.QPost.post
+import me.wypark.blogbackend.domain.tag.QPostTag.postTag
+import me.wypark.blogbackend.domain.tag.QTag.tag
+import me.wypark.blogbackend.domain.category.QCategory.category // 👈 QCategory import 추가
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.PageImpl
 import org.springframework.data.domain.Pageable
-import org.springframework.data.domain.Sort
-import me.wypark.blogbackend.domain.tag.QPostTag.postTag
-import me.wypark.blogbackend.domain.tag.QTag.tag
 
 class PostRepositoryImpl(
     private val queryFactory: JPAQueryFactory
 ) : PostRepositoryCustom {
-    override fun search(keyword: String?, categoryName: String?, tagName: String?, pageable: Pageable): Page<PostSummaryResponse> {
-        // 1. 동적 필터링 조건
+    override fun search(keyword: String?, categoryNames: List<String>?, tagName: String?, pageable: Pageable): Page<PostSummaryResponse> {
         val builder = BooleanBuilder()
         builder.and(containsKeyword(keyword))
-        builder.and(eqCategory(categoryName))
-        builder.and(eqTagName(tagName)) // 👈 태그 조건 추가
 
-        // 2. 쿼리 실행 (Join 추가)
+        // "uncategorized" (또는 "미분류") 요청 시 post.category.isNull 조건으로 변환하여 처리
+        builder.and(inCategoryNames(categoryNames))
+
+        builder.and(eqTagName(tagName))
+
         val query = queryFactory
             .select(
                 Projections.constructor(
@@ -34,31 +34,31 @@ class PostRepositoryImpl(
                     post.id,
                     post.title,
                     post.slug,
-                    post.category.name,
+                    category.name, // 👈 post.category.name 대신 alias 사용 (NULL 안전)
                     post.viewCount,
-                    post.createdAt
+                    post.createdAt,
+                    post.content // 👈 [추가] 미리보기를 위해 본문 내용도 조회합니다.
                 )
             )
             .from(post)
-            // 👇 태그 검색을 위해 테이블 Join
+            .leftJoin(post.category, category) // 👈 명시적 Left Join 추가 (카테고리 없어도 글 조회 가능하게 함)
             .leftJoin(post.tags, postTag)
             .leftJoin(postTag.tag, tag)
             .where(builder)
-            .distinct() // ⭐ 중요: 하나의 글에 태그가 여러 개면 글이 중복 조회될 수 있어서 제거
+            .distinct()
             .offset(pageable.offset)
             .limit(pageable.pageSize.toLong())
 
-        // 3. 정렬 적용
         for (order in getOrderSpecifiers(pageable)) {
             query.orderBy(order)
         }
 
         val content = query.fetch()
 
-        // 4. 전체 개수 (Count 쿼리에도 Join 필요)
         val total = queryFactory
-            .select(post.countDistinct()) // ⭐ 개수 셀 때도 중복 제거
+            .select(post.countDistinct())
             .from(post)
+            .leftJoin(post.category, category) // 👈 Count 쿼리에도 Left Join 추가
             .leftJoin(post.tags, postTag)
             .leftJoin(postTag.tag, tag)
             .where(builder)
@@ -67,9 +67,6 @@ class PostRepositoryImpl(
         return PageImpl(content, pageable, total)
     }
 
-    // --- 조건 메서드들 ---
-
-    // 검색어 (제목 or 본문)
     private fun containsKeyword(keyword: String?): BooleanBuilder {
         val builder = BooleanBuilder()
         if (!keyword.isNullOrBlank()) {
@@ -79,31 +76,59 @@ class PostRepositoryImpl(
         return builder
     }
 
-    // 카테고리 일치 (카테고리명이 없으면 무시)
-    private fun eqCategory(categoryName: String?): BooleanExpression? {
-        if (categoryName.isNullOrBlank()) return null
-        return post.category.name.eq(categoryName)
+    private fun inCategoryNames(categoryNames: List<String>?): BooleanExpression? {
+        if (categoryNames.isNullOrEmpty()) return null
+
+        // 1. 요청에 "uncategorized" 또는 "미분류"가 포함되어 있는지 확인
+        // (프론트엔드에서 한글로 "미분류"를 보내는 경우가 많으므로 둘 다 체크)
+        val hasUncategorized = categoryNames.any {
+            it.equals("uncategorized", ignoreCase = true) || it.equals("미분류", ignoreCase = true)
+        }
+
+        // 2. 그 외 일반 카테고리 이름들만 따로 추림
+        val normalNames = categoryNames.filter {
+            !it.equals("uncategorized", ignoreCase = true) && !it.equals("미분류", ignoreCase = true)
+        }
+
+        var expression: BooleanExpression? = null
+
+        // A. 일반 카테고리 이름 조건 (IN 절)
+        if (normalNames.isNotEmpty()) {
+            expression = category.name.`in`(normalNames) // 👈 alias 사용
+        }
+
+        // B. uncategorized 조건 (IS NULL) 추가
+        if (hasUncategorized) {
+            val isNullExpr = post.category.isNull // FK가 NULL인지 확인
+
+            expression = if (expression != null) {
+                // (일반 카테고리들) OR (카테고리 없음) -> 둘 중 하나라도 만족하면 조회
+                expression.or(isNullExpr)
+            } else {
+                // (카테고리 없음) -> 카테고리 없는 글만 모아서 조회
+                isNullExpr
+            }
+        }
+
+        return expression
     }
 
     private fun eqTagName(tagName: String?): BooleanExpression? {
         if (tagName.isNullOrBlank()) return null
-        return tag.name.eq(tagName) // 태그 이름은 정확히 일치해야 함
+        return tag.name.eq(tagName)
     }
 
-    // Pageable Sort -> QueryDSL OrderSpecifier 변환
     private fun getOrderSpecifiers(pageable: Pageable): List<OrderSpecifier<*>> {
         val orders = mutableListOf<OrderSpecifier<*>>()
 
         if (!pageable.sort.isEmpty) {
             for (order in pageable.sort) {
                 val direction = if (order.direction.isAscending) Order.ASC else Order.DESC
-
-                // 들어온 정렬 기준값(property)에 따라 QClass 필드 매핑
                 when (order.property) {
-                    "viewCount" -> orders.add(OrderSpecifier(direction, post.viewCount)) // 인기순
-                    "createdAt" -> orders.add(OrderSpecifier(direction, post.createdAt)) // 최신순
+                    "viewCount" -> orders.add(OrderSpecifier(direction, post.viewCount))
+                    "createdAt" -> orders.add(OrderSpecifier(direction, post.createdAt))
                     "id" -> orders.add(OrderSpecifier(direction, post.id))
-                    else -> orders.add(OrderSpecifier(Order.DESC, post.id)) // 기본
+                    else -> orders.add(OrderSpecifier(Order.DESC, post.id))
                 }
             }
         }

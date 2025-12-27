@@ -2,23 +2,28 @@ spring:
   application:
     name: blog-api
 
+  servlet:
+    multipart:
+      max-file-size: 100MB      # 파일 하나당 최대 크기 (기본 1MB -> 10MB로 증량)
+      max-request-size: 100MB   # 요청 전체 최대 크기 (여러 파일 합산)
+
   # 1. 데이터베이스 설정
   datasource:
     # Docker 내부 통신용
-    url: jdbc:postgresql://db:5432/blog_db
-    username: ${SPRING_DATASOURCE_USERNAME:wypark}
-    password: ${SPRING_DATASOURCE_PASSWORD:your_password}
+    url: jdbc:postgresql://${SPRING_DATASOURCE_URL}
+    username: ${SPRING_DATASOURCE_USERNAME}
+    password: ${SPRING_DATASOURCE_PASSWORD}
     driver-class-name: org.postgresql.Driver
 
   # 2. JPA 설정
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: validate
     properties:
       hibernate:
-        format_sql: true       # 쿼리 줄바꿈
-        show_sql: true         # 쿼리 출력
-        highlight_sql: true    # 쿼리 색상 강조 (가독성 UP)
+        format_sql: false       # 쿼리 줄바꿈
+        show_sql: false         # 쿼리 출력
+        highlight_sql: false    # 쿼리 색상 강조 (가독성 UP)
     open-in-view: false        # OSIV 종료 (DB 커넥션 최적화)
 
   mail:
@@ -40,17 +45,18 @@ spring:
   # 3. Redis 설정
   data:
     redis:
-      host: redis # Docker 서비스명
+      host: ${REDIS_HOST:localhost}
       port: 6379
 
   cloud:
     aws:
       s3:
-        bucket: my-blog-bucket
-        endpoint: http://minio:9000
+        bucket: blog-bucket
+        endpoint: https://s3.wypark.me
+        path-style-access-enabled: true
       credentials:
-        access-key: admin
-        secret-key: password
+        access-key: ${S3_ACCESS_KEY}
+        secret-key: ${S3_SECRET_KEY}
       region:
         static: ap-northeast-2
       stack:
@@ -59,6 +65,6 @@ spring:
 # 5. JWT 설정
 jwt:
   # 보안 경고: 실제 배포 시에는 절대 코드에 비밀키를 남기지 마세요. 환경변수로 주입받으세요.
-  secret: ${JWT_SECRET:v3ryS3cr3tK3yF0rMyB10gPr0j3ctM4k3ItL0ng3rTh4n32Byt3s!!}
+  secret: ${JWT_SECRET}
   access-token-validity: 600000
   refresh-token-validity: 604800000

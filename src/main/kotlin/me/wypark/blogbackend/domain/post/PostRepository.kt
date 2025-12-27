@@ -4,8 +4,11 @@ import me.wypark.blogbackend.domain.category.Category
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 import org.springframework.data.jpa.repository.JpaRepository
+import org.springframework.data.jpa.repository.Modifying
+import org.springframework.data.jpa.repository.Query
+import org.springframework.data.repository.query.Param
 
-interface PostRepository : JpaRepository<Post, Long>, PostRepositoryCustom{
+interface PostRepository : JpaRepository<Post, Long>, PostRepositoryCustom {
 
     // 1. Slug로 상세 조회 (URL이 깔끔해짐)
     fun findBySlug(slug: String): Post?
@@ -18,4 +21,9 @@ interface PostRepository : JpaRepository<Post, Long>, PostRepositoryCustom{
 
     // 4. 특정 카테고리의 글 목록 조회
     fun findAllByCategory(category: Category, pageable: Pageable): Page<Post>
+
+    // 5. [추가] 카테고리 삭제 시 해당 카테고리(및 하위)에 속한 글들의 카테고리를 null로 변경 (미분류 처리)
+    @Modifying(clearAutomatically = true)
+    @Query("UPDATE Post p SET p.category = null WHERE p.category IN :categories")
+    fun bulkUpdateCategoryToNull(@Param("categories") categories: List<Category>)
 }

@@ -13,10 +13,14 @@ class CorsConfig {
         val source = UrlBasedCorsConfigurationSource()
         val config = CorsConfiguration()
 
-        config.allowCredentials = true // 쿠키/토큰 허용
-        config.addAllowedOriginPattern("*") // 개발용 (배포 시 프론트 도메인으로 변경 추천)
-        config.addAllowedHeader("*")
-        config.addAllowedMethod("*") // GET, POST, PUT, DELETE 등 모두 허용
+        config.allowCredentials = true
+        config.addAllowedOrigin("https://blog.wypark.me") // 프론트 도메인
+        config.addAllowedHeader("*") // 클라이언트가 보내는 모든 헤더 허용 (Authorization 포함)
+        config.addAllowedMethod("*")
+
+        // [중요] 클라이언트가 응답 헤더에서 'Authorization'이나 커스텀 토큰 헤더를 읽을 수 있게 허용
+        config.addExposedHeader("Authorization")
+        config.addExposedHeader("Refresh-Token") // 리프레시 토큰도 헤더로 준다면 추가
 
         source.registerCorsConfiguration("/api/**", config)
         return CorsFilter(source)

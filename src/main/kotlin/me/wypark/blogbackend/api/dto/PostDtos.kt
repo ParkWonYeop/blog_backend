@@ -36,7 +36,8 @@ data class PostSummaryResponse(
     val slug: String,
     val categoryName: String?,
     val viewCount: Long,
-    val createdAt: LocalDateTime
+    val createdAt: LocalDateTime,
+    val content: String?
 ) {
     companion object {
         fun from(post: Post): PostSummaryResponse {
@@ -46,7 +47,8 @@ data class PostSummaryResponse(
                 slug = post.slug,
                 categoryName = post.category?.name,
                 viewCount = post.viewCount,
-                createdAt = post.createdAt
+                createdAt = post.createdAt,
+                content = post.content
             )
         }
     }

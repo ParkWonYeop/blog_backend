@@ -3,7 +3,9 @@ package me.wypark.blogbackend.domain.post
 import me.wypark.blogbackend.api.dto.PostResponse
 import me.wypark.blogbackend.api.dto.PostSaveRequest
 import me.wypark.blogbackend.api.dto.PostSummaryResponse
+import me.wypark.blogbackend.domain.category.Category
 import me.wypark.blogbackend.domain.category.CategoryRepository
+import me.wypark.blogbackend.domain.image.ImageService
 import me.wypark.blogbackend.domain.tag.PostTag
 import me.wypark.blogbackend.domain.tag.Tag
 import me.wypark.blogbackend.domain.tag.TagRepository
@@ -20,33 +22,25 @@ class PostService(
     private val postRepository: PostRepository,
     private val categoryRepository: CategoryRepository,
     private val memberRepository: MemberRepository,
-    private val tagRepository: TagRepository
+    private val tagRepository: TagRepository,
+    private val imageService: ImageService
 ) {
 
-    /**
-     * [Public] 전체 게시글 목록 조회 (페이징)
-     */
     fun getPosts(pageable: Pageable): Page<PostSummaryResponse> {
         return postRepository.findAll(pageable)
             .map { PostSummaryResponse.from(it) }
     }
 
-    /**
-     * [Public] 게시글 상세 조회 (Slug 기반) + 조회수 증가
-     */
     @Transactional
     fun getPostBySlug(slug: String): PostResponse {
         val post = postRepository.findBySlug(slug)
             ?: throw IllegalArgumentException("해당 게시글을 찾을 수 없습니다: $slug")
 
-        post.increaseViewCount() // 조회수 1 증가 (Dirty Checking)
+        post.increaseViewCount()
 
         return PostResponse.from(post)
     }
 
-    /**
-     * [Admin] 게시글 작성
-     */
     @Transactional
     fun createPost(request: PostSaveRequest, email: String): Long {
         val member = memberRepository.findByEmail(email)
@@ -54,47 +48,132 @@ class PostService(
 
         val category = request.categoryId?.let { categoryRepository.findByIdOrNull(it) }
 
-        val rawSlug = if (!request.slug.isNullOrBlank()) {
-            request.slug
-        } else {
-            request.title.trim().replace("\\s+".toRegex(), "-").lowercase()
-        }
+        // Slug 생성 로직
+        val uniqueSlug = generateUniqueSlug(request.slug, request.title)
 
-        // (2) DB 중복 검사: 중복되면 -1, -2, -3... 붙여나감
-        var uniqueSlug = rawSlug
-        var count = 1
-
-        while (postRepository.existsBySlug(uniqueSlug)) {
-            uniqueSlug = "$rawSlug-$count"
-            count++
-        }
-        // ---------------------------------------------------------
-
-        // 2. 게시글 객체 생성 (uniqueSlug 사용)
         val post = Post(
             title = request.title,
             content = request.content,
-            slug = uniqueSlug, // 👈 중복 처리된 슬러그
+            slug = uniqueSlug,
             member = member,
             category = category
         )
 
-        // 3. 태그 처리 (작성하신 로직 그대로 활용)
-        // 리스트를 순회하며 없으면 저장(save), 있으면 조회(find)
-        val postTags = request.tags.map { tagName ->
-            val tag = tagRepository.findByName(tagName)
-                ?: tagRepository.save(Tag(name = tagName))
-
-            PostTag(post = post, tag = tag)
-        }
-
-        // 연관관계 편의 메서드 사용 (Post 내부에 구현되어 있다고 가정)
+        val postTags = resolveTags(request.tags, post)
         post.addTags(postTags)
 
         return postRepository.save(post).id!!
     }
 
+    // 👈 [추가] 게시글 수정
+    @Transactional
+    fun updatePost(id: Long, request: PostSaveRequest): Long {
+        val post = postRepository.findByIdOrNull(id)
+            ?: throw IllegalArgumentException("존재하지 않는 게시글입니다.")
+
+        // 1. 이미지 정리: (기존 본문 이미지) - (새 본문 이미지) = 삭제 대상
+        val oldImages = extractImageNamesFromContent(post.content)
+        val newImages = extractImageNamesFromContent(request.content)
+        val removedImages = oldImages - newImages.toSet()
+
+        removedImages.forEach { imageService.deleteImage(it) }
+
+        // 2. 카테고리 조회
+        val category = request.categoryId?.let { categoryRepository.findByIdOrNull(it) }
+
+        // 3. Slug 갱신 (변경 요청이 있고, 기존과 다를 경우에만)
+        var newSlug = post.slug
+        if (!request.slug.isNullOrBlank() && request.slug != post.slug) {
+            newSlug = generateUniqueSlug(request.slug, request.title)
+        }
+
+        // 4. 정보 업데이트
+        post.update(request.title, request.content, newSlug, category)
+
+        // 5. 태그 업데이트
+        val newPostTags = resolveTags(request.tags, post)
+        post.updateTags(newPostTags)
+
+        return post.id!!
+    }
+
+    @Transactional
+    fun deletePost(id: Long) {
+        val post = postRepository.findByIdOrNull(id)
+            ?: throw IllegalArgumentException("존재하지 않는 게시글입니다.")
+
+        val imageNames = extractImageNamesFromContent(post.content)
+        imageNames.forEach { fileName ->
+            imageService.deleteImage(fileName)
+        }
+
+        postRepository.delete(post)
+    }
+
     fun searchPosts(keyword: String?, categoryName: String?, tagName: String?, pageable: Pageable): Page<PostSummaryResponse> {
-        return postRepository.search(keyword, categoryName, tagName, pageable)
+        val categoryNames = if (categoryName != null) {
+            getCategoryAndDescendants(categoryName)
+        } else {
+            null
+        }
+
+        return postRepository.search(keyword, categoryNames, tagName, pageable)
+    }
+
+    // --- Helper Methods ---
+
+    // Slug 중복 처리 로직 분리
+    private fun generateUniqueSlug(inputSlug: String?, title: String): String {
+        val rawSlug = if (!inputSlug.isNullOrBlank()) {
+            inputSlug
+        } else {
+            title.trim().replace("\\s+".toRegex(), "-").lowercase()
+        }
+
+        var uniqueSlug = rawSlug
+        var count = 1
+
+        // 본인 제외하고 체크해야 하지만, create/update 공용 로직이므로 단순 exists 체크
+        // (update 시 본인 slug 유지하면 exists에 걸리므로, 호출부에서 slug 변경 감지 후 호출해야 함)
+        while (postRepository.existsBySlug(uniqueSlug)) {
+            uniqueSlug = "$rawSlug-$count"
+            count++
+        }
+        return uniqueSlug
+    }
+
+    // 태그 이름 -> PostTag 변환 로직 분리
+    private fun resolveTags(tagNames: List<String>, post: Post): List<PostTag> {
+        return tagNames.map { tagName ->
+            val tag = tagRepository.findByName(tagName)
+                ?: tagRepository.save(Tag(name = tagName))
+            PostTag(post = post, tag = tag)
+        }
+    }
+
+    private fun extractImageNamesFromContent(content: String): List<String> {
+        val regex = Regex("!\\[.*?\\]\\((.*?)\\)")
+        return regex.findAll(content)
+            .map { it.groupValues[1] }
+            .map { it.substringAfterLast("/") }
+            .toList()
+    }
+
+    private fun getCategoryAndDescendants(categoryName: String): List<String> {
+        if (categoryName.equals("uncategorized", ignoreCase = true)) {
+            return listOf("uncategorized")
+        }
+
+        val category = categoryRepository.findByName(categoryName)
+        if (category == null) return listOf(categoryName)
+
+        val names = mutableListOf<String>()
+        collectCategoryNames(category, names)
+        return names
+    }
+
+    private fun collectCategoryNames(category: Category, names: MutableList<String>) {
+        names.add(category.name)
+        category.children.forEach { collectCategoryNames(it, names) }
     }
 }

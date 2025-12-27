@@ -11,35 +11,39 @@ class Post(
     @Column(nullable = false)
     var title: String,
 
-    // 마크다운 본문 (대용량 저장을 위해 TEXT 타입 지정)
-    @Column(nullable = false, columnDefinition = "TEXT")
+    @Column(columnDefinition = "TEXT", nullable = false)
     var content: String,
 
     @Column(nullable = false, unique = true)
-    var slug: String, // URL용 제목 (예: my-first-post)
+    var slug: String,
+
+    @Column(nullable = false)
+    var viewCount: Long = 0,
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "member_id")
-    val member: Member, // 작성자 (관리자)
+    val member: Member,
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "category_id")
-    var category: Category? = null // 카테고리 (없을 수도 있음)
+    var category: Category? = null,
 
-) : BaseTimeEntity() { // 생성일, 수정일 자동 관리
+    @OneToMany(mappedBy = "post", cascade = [CascadeType.ALL], orphanRemoval = true)
+    val tags: MutableList<PostTag> = mutableListOf()
+) : BaseTimeEntity() {
 
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     val id: Long? = null
 
-    @Column(nullable = false)
-    var viewCount: Long = 0
-
-    // 조회수 증가
     fun increaseViewCount() {
         this.viewCount++
     }
 
-    // 게시글 수정
+    fun addTags(postTags: List<PostTag>) {
+        this.tags.addAll(postTags)
+    }
+
+    // 👈 [추가] 게시글 수정 메서드
     fun update(title: String, content: String, slug: String, category: Category?) {
         this.title = title
         this.content = content
@@ -47,11 +51,9 @@ class Post(
         this.category = category
     }
 
-    @OneToMany(mappedBy = "post", cascade = [CascadeType.ALL], orphanRemoval = true)
-    var tags: MutableList<PostTag> = mutableListOf()
-
-    fun addTags(newTags: List<PostTag>) {
-        this.tags.clear()
+    // 👈 [추가] 태그 전체 교체 편의 메서드
+    fun updateTags(newTags: List<PostTag>) {
+        this.tags.clear() // orphanRemoval = true 덕분에 기존 태그 매핑이 삭제됨
         this.tags.addAll(newTags)
     }
 }

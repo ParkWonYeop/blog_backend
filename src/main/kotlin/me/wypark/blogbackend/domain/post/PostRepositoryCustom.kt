@@ -5,5 +5,6 @@ import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 
 interface PostRepositoryCustom {
-    fun search(keyword: String?, categoryName: String?, tagName: String?, pageable: Pageable): Page<PostSummaryResponse>
+    // categoryName(String) -> categoryNames(List<String>) 변경
+    fun search(keyword: String?, categoryNames: List<String>?, tagName: String?, pageable: Pageable): Page<PostSummaryResponse>
 }

@@ -5,7 +5,7 @@ import org.springframework.stereotype.Service
 import org.springframework.web.multipart.MultipartFile
 import software.amazon.awssdk.core.sync.RequestBody
 import software.amazon.awssdk.services.s3.S3Client
-import software.amazon.awssdk.services.s3.model.GetUrlRequest
+import software.amazon.awssdk.services.s3.model.DeleteObjectRequest
 import software.amazon.awssdk.services.s3.model.PutObjectRequest
 import java.util.*
 
@@ -36,9 +36,22 @@ class ImageService(
         s3Client.putObject(putObjectRequest, RequestBody.fromInputStream(file.inputStream, file.size))
 
         // 3. 접속 가능한 URL 반환
-        // 로컬 개발 환경에서는 localhost 주소를 직접 조합해서 줍니다.
-        // 배포 시에는 실제 도메인이나 CloudFront 주소로 변경해야 합니다.
         return "$endpoint/$bucketName/$fileName"
+    }
+
+    // 👈 [추가] 이미지 삭제 로직
+    fun deleteImage(fileName: String) {
+        try {
+            val deleteObjectRequest = DeleteObjectRequest.builder()
+                .bucket(bucketName)
+                .key(fileName)
+                .build()
+
+            s3Client.deleteObject(deleteObjectRequest)
+        } catch (e: Exception) {
+            // 이미지가 이미 없거나 삭제 실패 시 로그만 남기고 진행 (게시글 삭제 자체를 막지 않기 위해)
+            e.printStackTrace()
+        }
     }
 
     private fun createBucketIfNotExists() {

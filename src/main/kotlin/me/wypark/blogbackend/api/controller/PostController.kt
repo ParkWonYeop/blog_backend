@@ -17,22 +17,28 @@ class PostController(
     private val postService: PostService
 ) {
 
-    // 목록 조회 (기본값: 최신순, 10개씩)
     @GetMapping
     fun getPosts(
         @RequestParam(required = false) keyword: String?,
-        @RequestParam(required = false) category: String?,
-        @RequestParam(required = false) tag: String?, // 👈 파라미터 추가
-        @PageableDefault(size = 10, sort = ["id"], direction = Sort.Direction.DESC) pageable: Pageable
+        @RequestParam(required = false) category: String?, // 👈 프론트는 'category'로 보냄
+        @RequestParam(required = false) tag: String?,
+        @PageableDefault(size = 10, sort = ["createdAt"], direction = Sort.Direction.DESC) pageable: Pageable
     ): ResponseEntity<ApiResponse<Page<PostSummaryResponse>>> {
 
-        val result = postService.searchPosts(keyword, category, tag, pageable)
-        return ResponseEntity.ok(ApiResponse.success(result))
+        // 검색 조건이 하나라도 있으면 searchPosts 호출 (검색 + 카테고리 필터링)
+        return if (keyword != null || category != null || tag != null) {
+            val posts = postService.searchPosts(keyword, category, tag, pageable)
+            ResponseEntity.ok(ApiResponse.success(posts))
+        } else {
+            // 조건이 없으면 전체 목록 조회
+            val posts = postService.getPosts(pageable)
+            ResponseEntity.ok(ApiResponse.success(posts))
+        }
     }
 
-    // 상세 조회 (Slug)
     @GetMapping("/{slug}")
     fun getPost(@PathVariable slug: String): ResponseEntity<ApiResponse<PostResponse>> {
-        return ResponseEntity.ok(ApiResponse.success(postService.getPostBySlug(slug)))
+        val post = postService.getPostBySlug(slug)
+        return ResponseEntity.ok(ApiResponse.success(post))
     }
 }

@@ -8,6 +8,12 @@ data class CategoryCreateRequest(
     val parentId: Long? = null // null이면 최상위(Root) 카테고리
 )
 
+// [요청] 카테고리 수정 (이름 + 부모 이동)
+data class CategoryUpdateRequest(
+    val name: String,
+    val parentId: Long? // null이면 최상위(Root)로 이동
+)
+
 // [응답] 카테고리 트리 구조 (재귀)
 data class CategoryResponse(
     val id: Long,

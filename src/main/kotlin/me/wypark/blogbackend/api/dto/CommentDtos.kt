@@ -8,7 +8,8 @@ data class CommentResponse(
     val id: Long,
     val content: String,
     val author: String,
-    val isPostAuthor: Boolean, // 👈 [추가] 게시글 작성자 여부
+    val isPostAuthor: Boolean,
+    val memberId: Long?,
     val createdAt: LocalDateTime,
     val children: List<CommentResponse>
 ) {
@@ -22,7 +23,8 @@ data class CommentResponse(
                 id = comment.id!!,
                 content = comment.content,
                 author = comment.getAuthorName(),
-                isPostAuthor = isAuthor, // 👈 계산된 값 주입
+                isPostAuthor = isAuthor,
+                memberId = comment.member?.id,
                 createdAt = comment.createdAt,
                 children = comment.children.map { from(it) }
             )
