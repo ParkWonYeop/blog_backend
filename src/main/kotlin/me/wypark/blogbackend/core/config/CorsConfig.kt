@@ -26,3 +26,4 @@ class CorsConfig {
         return CorsFilter(source)
     }
 }
+

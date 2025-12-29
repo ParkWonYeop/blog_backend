@@ -38,7 +38,13 @@ class PostService(
 
         post.increaseViewCount()
 
-        return PostResponse.from(post)
+        // 👈 [추가] 이전/다음 게시글 조회
+        // prevPost: 현재 글보다 ID가 작으면서 가장 가까운 글 (과거 글)
+        val prevPost = postRepository.findFirstByIdLessThanOrderByIdDesc(post.id!!)
+        // nextPost: 현재 글보다 ID가 크면서 가장 가까운 글 (최신 글)
+        val nextPost = postRepository.findFirstByIdGreaterThanOrderByIdAsc(post.id!!)
+
+        return PostResponse.from(post, prevPost, nextPost)
     }
 
     @Transactional
@@ -65,7 +71,7 @@ class PostService(
         return postRepository.save(post).id!!
     }
 
-    // 👈 [추가] 게시글 수정
+    // 게시글 수정
     @Transactional
     fun updatePost(id: Long, request: PostSaveRequest): Long {
         val post = postRepository.findByIdOrNull(id)
@@ -133,8 +139,9 @@ class PostService(
         var uniqueSlug = rawSlug
         var count = 1
 
-        // 본인 제외하고 체크해야 하지만, create/update 공용 로직이므로 단순 exists 체크
-        // (update 시 본인 slug 유지하면 exists에 걸리므로, 호출부에서 slug 변경 감지 후 호출해야 함)
+        uniqueSlug = uniqueSlug.replace("?", "")
+        uniqueSlug = uniqueSlug.replace(";", "")
+
         while (postRepository.existsBySlug(uniqueSlug)) {
             uniqueSlug = "$rawSlug-$count"
             count++

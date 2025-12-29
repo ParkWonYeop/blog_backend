@@ -22,8 +22,14 @@ interface PostRepository : JpaRepository<Post, Long>, PostRepositoryCustom {
     // 4. 특정 카테고리의 글 목록 조회
     fun findAllByCategory(category: Category, pageable: Pageable): Page<Post>
 
-    // 5. [추가] 카테고리 삭제 시 해당 카테고리(및 하위)에 속한 글들의 카테고리를 null로 변경 (미분류 처리)
+    // 5. 카테고리 삭제 시 해당 카테고리(및 하위)에 속한 글들의 카테고리를 null로 변경 (미분류 처리)
     @Modifying(clearAutomatically = true)
     @Query("UPDATE Post p SET p.category = null WHERE p.category IN :categories")
     fun bulkUpdateCategoryToNull(@Param("categories") categories: List<Category>)
+
+    // 6. [추가] 이전 글 조회 (현재 ID보다 작은 것 중 가장 큰 ID = 바로 이전 과거 글)
+    fun findFirstByIdLessThanOrderByIdDesc(id: Long): Post?
+
+    // 7. [추가] 다음 글 조회 (현재 ID보다 큰 것 중 가장 작은 ID = 바로 다음 최신 글)
+    fun findFirstByIdGreaterThanOrderByIdAsc(id: Long): Post?
 }

@@ -37,6 +37,7 @@ class PostRepositoryImpl(
                     category.name, // 👈 post.category.name 대신 alias 사용 (NULL 안전)
                     post.viewCount,
                     post.createdAt,
+                    post.updatedAt,
                     post.content // 👈 [추가] 미리보기를 위해 본문 내용도 조회합니다.
                 )
             )

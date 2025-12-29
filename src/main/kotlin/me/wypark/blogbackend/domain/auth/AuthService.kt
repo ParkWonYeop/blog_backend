@@ -9,6 +9,7 @@ import me.wypark.blogbackend.domain.user.MemberRepository
 import me.wypark.blogbackend.domain.user.Role
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder
+import org.springframework.security.core.userdetails.UserDetailsService
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -21,7 +22,9 @@ class AuthService(
     private val authenticationManagerBuilder: AuthenticationManagerBuilder,
     private val jwtProvider: JwtProvider,
     private val refreshTokenRepository: RefreshTokenRepository,
-    private val emailService: EmailService
+    private val emailService: EmailService,
+    // 👇 추가: DB에서 유저 정보를 다시 로드하기 위해 필요
+    private val userDetailsService: UserDetailsService
 ) {
 
     /**
@@ -71,7 +74,6 @@ class AuthService(
         val authenticationToken = UsernamePasswordAuthenticationToken(request.email, request.password)
 
         // 2. 실제 검증 (사용자 비밀번호 체크)
-        // authenticate() 실행 시 CustomUserDetailsService.loadUserByUsername 실행됨
         val authentication = authenticationManagerBuilder.`object`.authenticate(authenticationToken)
 
         // 3. 인증 정보를 기반으로 JWT 토큰 생성
@@ -93,24 +95,34 @@ class AuthService(
             throw IllegalArgumentException("유효하지 않은 Refresh Token입니다.")
         }
 
-        // 2. 액세스 토큰에서 User ID(Email) 가져오기 (만료된 토큰이어도 파싱 가능하도록 JwtProvider가 설계됨)
-        val authentication = jwtProvider.getAuthentication(accessToken)
+        // 2. 액세스 토큰에서 User ID(Email) 가져오기
+        // (주의: 여기서 authentication.principal은 CustomUserDetails가 아닐 수 있음)
+        val tempAuthentication = jwtProvider.getAuthentication(accessToken)
 
         // 3. Redis에서 저장된 Refresh Token 가져오기
-        val savedRefreshToken = refreshTokenRepository.findByEmail(authentication.name)
+        val savedRefreshToken = refreshTokenRepository.findByEmail(tempAuthentication.name)
             ?: throw IllegalArgumentException("로그아웃 된 사용자입니다.")
 
         // 4. 토큰 일치 여부 확인 (재사용 방지)
         if (savedRefreshToken != refreshToken) {
-            refreshTokenRepository.delete(authentication.name)
+            refreshTokenRepository.delete(tempAuthentication.name)
             throw IllegalArgumentException("토큰 정보가 일치하지 않습니다.")
         }
 
-        // 5. 새 토큰 생성 (Rotation)
-        val newTokenDto = jwtProvider.generateTokenDto(authentication)
+        // ✨ 5. [수정됨] DB에서 유저 정보(CustomUserDetails) 다시 로드
+        // JwtProvider.generateTokenDto()가 CustomUserDetails를 필요로 하므로 필수
+        val userDetails = userDetailsService.loadUserByUsername(tempAuthentication.name)
 
-        // 6. Redis 업데이트 (한번 쓴 토큰 폐기 -> 새 토큰 저장)
-        refreshTokenRepository.save(authentication.name, newTokenDto.refreshToken)
+        // ✨ 로드한 userDetails로 새로운 Authentication 생성
+        val newAuthentication = UsernamePasswordAuthenticationToken(
+            userDetails, null, userDetails.authorities
+        )
+
+        // 6. 새 토큰 생성 (Rotation)
+        val newTokenDto = jwtProvider.generateTokenDto(newAuthentication)
+
+        // 7. Redis 업데이트 (한번 쓴 토큰 폐기 -> 새 토큰 저장)
+        refreshTokenRepository.save(newAuthentication.name, newTokenDto.refreshToken)
 
         return newTokenDto
     }

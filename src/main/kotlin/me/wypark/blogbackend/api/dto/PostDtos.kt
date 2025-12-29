@@ -3,6 +3,21 @@ package me.wypark.blogbackend.api.dto
 import me.wypark.blogbackend.domain.post.Post
 import java.time.LocalDateTime
 
+// [응답] 인접 게시글 정보 (이전글/다음글)
+data class PostNeighborResponse(
+    val slug: String,
+    val title: String
+) {
+    companion object {
+        fun from(post: Post): PostNeighborResponse {
+            return PostNeighborResponse(
+                slug = post.slug,
+                title = post.title
+            )
+        }
+    }
+}
+
 // [응답] 게시글 상세 정보
 data class PostResponse(
     val id: Long,
@@ -11,11 +26,14 @@ data class PostResponse(
     val slug: String,
     val categoryName: String?,
     val viewCount: Long,
-    val createdAt: LocalDateTime
+    val createdAt: LocalDateTime,
+    // 👈 [추가] 이전/다음 게시글 정보
+    val prevPost: PostNeighborResponse?,
+    val nextPost: PostNeighborResponse?
 ) {
     // Entity -> DTO 변환 편의 메서드
     companion object {
-        fun from(post: Post): PostResponse {
+        fun from(post: Post, prevPost: Post? = null, nextPost: Post? = null): PostResponse {
             return PostResponse(
                 id = post.id!!,
                 title = post.title,
@@ -23,7 +41,9 @@ data class PostResponse(
                 slug = post.slug,
                 categoryName = post.category?.name,
                 viewCount = post.viewCount,
-                createdAt = post.createdAt
+                createdAt = post.createdAt,
+                prevPost = prevPost?.let { PostNeighborResponse.from(it) },
+                nextPost = nextPost?.let { PostNeighborResponse.from(it) }
             )
         }
     }
@@ -37,6 +57,7 @@ data class PostSummaryResponse(
     val categoryName: String?,
     val viewCount: Long,
     val createdAt: LocalDateTime,
+    val updatedAt: LocalDateTime,
     val content: String?
 ) {
     companion object {
@@ -48,6 +69,7 @@ data class PostSummaryResponse(
                 categoryName = post.category?.name,
                 viewCount = post.viewCount,
                 createdAt = post.createdAt,
+                updatedAt = post.updatedAt,
                 content = post.content
             )
         }
