@@ -102,3 +102,29 @@ class ChessPuzzleControllerIntegrationTest {
             )
         )
     }
+
+    @TestConfiguration
+    class ClockTestConfiguration {
+        @Bean
+        @Primary
+        fun mutableClock(): MutableClock = MutableClock()
+    }
+}
+
+class MutableClock(
+    private var currentInstant: Instant = LocalDate.of(2026, 5, 28)
+        .atStartOfDay(ZoneId.of("Asia/Seoul"))
+        .toInstant(),
+    private val currentZone: ZoneId = ZoneOffset.UTC
+) : Clock() {
+
+    override fun getZone(): ZoneId = currentZone
+
+    override fun withZone(zone: ZoneId): Clock = MutableClock(currentInstant, zone)
+
+    override fun instant(): Instant = currentInstant
+
+    fun setDate(date: LocalDate, zoneId: ZoneId) {
+        currentInstant = date.atStartOfDay(zoneId).toInstant()
+    }
+}
