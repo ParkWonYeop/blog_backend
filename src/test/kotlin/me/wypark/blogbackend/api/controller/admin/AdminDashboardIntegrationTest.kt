@@ -38,3 +38,41 @@ class AdminDashboardIntegrationTest {
     @Autowired
     lateinit var mockMvc: MockMvc
 
+    @Autowired
+    lateinit var memberRepository: MemberRepository
+
+    @Autowired
+    lateinit var categoryRepository: CategoryRepository
+
+    @Autowired
+    lateinit var postRepository: PostRepository
+
+    @Autowired
+    lateinit var commentRepository: CommentRepository
+
+    @Autowired
+    lateinit var postViewCounter: PostViewCounter
+
+    @Autowired
+    lateinit var jdbcTemplate: NamedParameterJdbcTemplate
+
+    @Autowired
+    lateinit var entityManager: EntityManager
+
+    @Test
+    fun `post detail view creates and increments daily stats`() {
+        val admin = saveMember("admin@example.com", Role.ROLE_ADMIN)
+        val post = postRepository.saveAndFlush(
+            Post(
+                title = "Daily Stats",
+                content = "content",
+                slug = "daily-stats",
+                member = admin
+            )
+        )
+        val postId = requireNotNull(post.id)
+        val today = LocalDate.now(ZoneId.of("Asia/Seoul"))
+
+        mockMvc.perform(get("/api/posts/{slug}", post.slug))
+            .andExpect(status().isOk)
+
