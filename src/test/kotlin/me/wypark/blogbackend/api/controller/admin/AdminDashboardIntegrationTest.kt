@@ -76,3 +76,40 @@ class AdminDashboardIntegrationTest {
         mockMvc.perform(get("/api/posts/{slug}", post.slug))
             .andExpect(status().isOk)
 
+        mockMvc.perform(get("/api/posts/{slug}", post.slug))
+            .andExpect(status().isOk)
+
+        entityManager.flush()
+        entityManager.clear()
+
+        assertEquals(2L, findDailyViewCount(postId, today))
+        assertEquals(2L, postRepository.findBySlug(post.slug)?.viewCount)
+    }
+
+    @Test
+    fun `dashboard requires admin authority`() {
+        mockMvc.perform(get("/api/admin/dashboard"))
+            .andExpect(status().isUnauthorized)
+            .andExpect(jsonPath("$.code").value("UNAUTHORIZED"))
+
+        mockMvc.perform(get("/api/admin/dashboard").with(user("user").roles("USER")))
+            .andExpect(status().isForbidden)
+            .andExpect(jsonPath("$.code").value("FORBIDDEN"))
+
+        mockMvc.perform(get("/api/admin/dashboard").with(user("admin").roles("ADMIN")))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.code").value("SUCCESS"))
+            .andExpect(jsonPath("$.message").value("OK"))
+    }
+
+    @Test
+    fun `dashboard returns traffic metrics post stats categories and action items`() {
+        val admin = saveMember("admin-dashboard@example.com", Role.ROLE_ADMIN)
+        val category = categoryRepository.saveAndFlush(Category(name = "Backend"))
+        val post = postRepository.saveAndFlush(
+            Post(
+                title = "Dashboard API",
+                content = "content",
+                slug = "dashboard-api",
+                viewCount = 5,
+                member = admin,
