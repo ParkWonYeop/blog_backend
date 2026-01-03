@@ -113,3 +113,50 @@ class AdminDashboardIntegrationTest {
                 slug = "dashboard-api",
                 viewCount = 5,
                 member = admin,
+                category = category
+            )
+        )
+        val stalePost = postRepository.saveAndFlush(
+            Post(
+                title = "Old Popular API",
+                content = "content",
+                slug = "old-popular-api",
+                viewCount = 10,
+                member = admin,
+                category = category
+            )
+        )
+        val postId = requireNotNull(post.id)
+        val stalePostId = requireNotNull(stalePost.id)
+        val today = LocalDate.now(ZoneId.of("Asia/Seoul"))
+
+        repeat(3) { postViewCounter.increment(postId, today) }
+        repeat(2) { postViewCounter.increment(postId, today.minusDays(1)) }
+        repeat(10) { postViewCounter.increment(stalePostId, today) }
+        markPostAsOld(stalePostId, today.minusDays(181).atStartOfDay())
+
+        val unanswered = commentRepository.saveAndFlush(
+            Comment(
+                content = "Can you explain this?",
+                post = post,
+                guestNickname = "guest",
+                guestPassword = "pw"
+            )
+        )
+        val answered = commentRepository.saveAndFlush(
+            Comment(
+                content = "Already answered",
+                post = post,
+                guestNickname = "guest2",
+                guestPassword = "pw"
+            )
+        )
+        commentRepository.saveAndFlush(
+            Comment(
+                content = "Admin answer",
+                post = post,
+                parent = answered,
+                member = admin
+            )
+        )
+
