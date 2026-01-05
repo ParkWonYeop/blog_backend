@@ -160,3 +160,29 @@ class AdminDashboardIntegrationTest {
             )
         )
 
+        entityManager.flush()
+        entityManager.clear()
+
+        mockMvc.perform(
+            get("/api/admin/dashboard")
+                .param("range", "7d")
+                .param("timezone", "Asia/Seoul")
+                .with(user("admin").roles("ADMIN"))
+        )
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.data.traffic.length()").value(7))
+            .andExpect(jsonPath("$.data.overview.todayViews.value").value(13))
+            .andExpect(jsonPath("$.data.overview.weekViews.value").value(15))
+            .andExpect(jsonPath("$.data.topPosts[0].slug").value(stalePost.slug))
+            .andExpect(jsonPath("$.data.risingPosts[0].rangeViewCount").value(10))
+            .andExpect(jsonPath("$.data.stalePopularPosts[0].slug").value(stalePost.slug))
+            .andExpect(jsonPath("$.data.categoryStats[0].name").value(category.name))
+            .andExpect(jsonPath("$.data.categoryStats[0].postCount").value(2))
+            .andExpect(jsonPath("$.data.categoryStats[0].recentViewCount").value(15))
+            .andExpect(jsonPath("$.data.actionItems.unansweredComments").value(1))
+            .andExpect(jsonPath("$.data.actionItems.stalePopularPosts").value(1))
+
+        val unansweredId = requireNotNull(unanswered.id)
+        assertEquals(unansweredId, commentRepository.findById(unansweredId).orElseThrow().id)
+    }
+
