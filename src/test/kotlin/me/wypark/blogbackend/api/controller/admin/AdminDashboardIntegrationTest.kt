@@ -186,3 +186,44 @@ class AdminDashboardIntegrationTest {
         assertEquals(unansweredId, commentRepository.findById(unansweredId).orElseThrow().id)
     }
 
+    private fun saveMember(email: String, role: Role): Member {
+        return memberRepository.saveAndFlush(
+            Member(
+                email = email,
+                password = "password",
+                nickname = email.substringBefore("@"),
+                role = role,
+                isVerified = true
+            )
+        )
+    }
+
+    private fun findDailyViewCount(postId: Long, date: LocalDate): Long {
+        return jdbcTemplate.queryForObject(
+            """
+            SELECT view_count
+            FROM post_view_daily_stats
+            WHERE post_id = :postId
+              AND stat_date = :statDate
+            """.trimIndent(),
+            MapSqlParameterSource()
+                .addValue("postId", postId)
+                .addValue("statDate", date),
+            Number::class.java
+        ).let(::requireNotNull).toLong()
+    }
+
+    private fun markPostAsOld(postId: Long, dateTime: LocalDateTime) {
+        jdbcTemplate.update(
+            """
+            UPDATE post
+            SET created_at = :dateTime,
+                updated_at = :dateTime
+            WHERE id = :postId
+            """.trimIndent(),
+            MapSqlParameterSource()
+                .addValue("postId", postId)
+                .addValue("dateTime", dateTime)
+        )
+    }
+}
