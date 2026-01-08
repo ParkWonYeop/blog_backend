@@ -26,3 +26,27 @@ class LayerDependencyTest {
             forbiddenLayers = setOf("api", "infrastructure")
         )
     }
+
+    @Test
+    fun `api depends on application contracts instead of domain internals`() {
+        assertNoImports(
+            layer = "api",
+            forbiddenLayers = setOf("domain", "infrastructure")
+        )
+    }
+
+    private fun assertNoImports(layer: String, forbiddenLayers: Set<String>) {
+        val forbiddenPrefixes = forbiddenLayers.map { "import me.wypark.blogbackend.$it." }
+        val violations = mutableListOf<String>()
+        Files.walk(sourceRoot.resolve(layer)).use { paths ->
+            paths.filter { Files.isRegularFile(it) && it.extension == "kt" }
+                .forEach { file ->
+                    file.readText().lineSequence()
+                        .filter { line -> forbiddenPrefixes.any(line::startsWith) }
+                        .mapTo(violations) { line -> "${sourceRoot.relativize(file)}: $line" }
+                }
+        }
+
+        assertTrue(violations.isEmpty(), violations.joinToString(separator = "\n"))
+    }
+}
