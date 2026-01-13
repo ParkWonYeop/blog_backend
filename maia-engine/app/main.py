@@ -29,3 +29,40 @@ class StateRequest(BaseModel):
     event: str = "Maia3"
 
 
+class PlayRequest(StateRequest):
+    rating: int = Field(default=1500, ge=600, le=2600)
+    model: str = Field(default=DEFAULT_MODEL, pattern="^(3m|5m|23m|79m)$")
+    temperature: float = Field(default=0.8, ge=0.0, le=2.0)
+    topP: float = Field(default=0.95, ge=0.0, le=1.0)
+
+
+def model_alias(model: str) -> str:
+    return f"maia3-{model}"
+
+
+def engine_executable() -> str:
+    executable_name = "maia3-uci.exe" if os.name == "nt" else "maia3-uci"
+    venv_executable = Path(sys.executable).with_name(executable_name)
+    if venv_executable.exists():
+        return str(venv_executable)
+
+    path_executable = shutil.which("maia3-uci")
+    if path_executable:
+        return path_executable
+
+    return "maia3-uci"
+
+
+def engine_command(model: str) -> list[str]:
+    command = [
+        engine_executable(),
+        "--model",
+        model_alias(model),
+        "--use-uci-history",
+        "--device",
+        DEFAULT_DEVICE,
+    ]
+    if not DEFAULT_USE_AMP:
+        command.append("--no-use-amp")
+    return command
+
