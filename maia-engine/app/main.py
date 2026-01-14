@@ -66,3 +66,36 @@ def engine_command(model: str) -> list[str]:
         command.append("--no-use-amp")
     return command
 
+
+def get_engine(model: str) -> chess.engine.SimpleEngine:
+    if model not in engines:
+        try:
+            engines[model] = chess.engine.SimpleEngine.popen_uci(engine_command(model))
+        except FileNotFoundError as exc:
+            raise HTTPException(status_code=503, detail="maia3-uci executable was not found") from exc
+        except (chess.engine.EngineError, subprocess.SubprocessError, OSError) as exc:
+            raise HTTPException(status_code=503, detail="failed to start Maia engine") from exc
+    return engines[model]
+
+
+def build_board(moves: list[str]) -> chess.Board:
+    board = chess.Board()
+    for move in moves:
+        try:
+            board.push_uci(move)
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=f"invalid move: {move}") from exc
+    return board
+
+
+def pgn_payload(board: chess.Board, request: StateRequest, result: str | None) -> str:
+    game = chess.pgn.Game.from_board(board)
+    game.headers["Event"] = request.event
+    game.headers["Site"] = "blog-backend"
+    game.headers["Date"] = datetime.now(timezone.utc).strftime("%Y.%m.%d")
+    if request.white:
+        game.headers["White"] = request.white
+    if request.black:
+        game.headers["Black"] = request.black
+    game.headers["Result"] = result or "*"
+
