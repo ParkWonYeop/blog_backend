@@ -99,3 +99,36 @@ def pgn_payload(board: chess.Board, request: StateRequest, result: str | None) -
         game.headers["Black"] = request.black
     game.headers["Result"] = result or "*"
 
+    exporter = chess.pgn.StringExporter(headers=True, variations=False, comments=False)
+    return game.accept(exporter)
+
+
+def board_payload(board: chess.Board, request: StateRequest) -> dict:
+    outcome = board.outcome(claim_draw=True)
+    if outcome is None:
+        status = "IN_PROGRESS"
+        result = None
+    else:
+        status = outcome.termination.name
+        result = outcome.result()
+
+    return {
+        "fen": board.fen(),
+        "turn": "white" if board.turn == chess.WHITE else "black",
+        "status": status,
+        "result": result,
+        "pgn": pgn_payload(board, request, result),
+    }
+
+
+@app.get("/health")
+def health() -> dict:
+    return {"status": "ok"}
+
+
+@app.post("/maia/state")
+def state(request: StateRequest) -> dict:
+    board = build_board(request.moves)
+    return board_payload(board, request)
+
+
