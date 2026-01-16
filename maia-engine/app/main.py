@@ -132,3 +132,36 @@ def state(request: StateRequest) -> dict:
     return board_payload(board, request)
 
 
+@app.post("/maia/move")
+def move(request: PlayRequest) -> dict:
+    board = build_board(request.moves)
+    current = board_payload(board, request)
+    if current["status"] != "IN_PROGRESS":
+        return {"move": None, **current}
+
+    with engine_lock:
+        maia = get_engine(request.model)
+        try:
+            maia.configure(
+                {
+                    "Elo": request.rating,
+                    "Temperature": request.temperature,
+                    "TopP": request.topP,
+                }
+            )
+            result = maia.play(board, chess.engine.Limit(nodes=1))
+        except chess.engine.EngineError as exc:
+            raise HTTPException(status_code=503, detail="Maia engine failed to select a move") from exc
+
+    if result.move is None:
+        raise HTTPException(status_code=503, detail="Maia engine returned no move")
+
+    board.push(result.move)
+    return {"move": result.move.uci(), **board_payload(board, request)}
+
+
+@app.on_event("shutdown")
+def shutdown() -> None:
+    for maia in engines.values():
+        maia.quit()
+    engines.clear()
