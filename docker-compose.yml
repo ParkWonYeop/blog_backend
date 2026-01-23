@@ -1,0 +1,39 @@
+services:
+  blog-api:
+    build: .
+    container_name: blog-api
+    restart: always
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_DATASOURCE_URL=db:5432/blog_db
+      - SPRING_DATASOURCE_USERNAME=${DB_USER}
+      - SPRING_DATASOURCE_PASSWORD=${DB_PASS}
+      - JWT_SECRET=${JWT_SECRET}
+      - MAIA_ENGINE_URL=http://maia-engine:8000
+      - SPRING_DATA_REDIS_HOST=redis
+      - SPRING_DATA_REDIS_PORT=6379
+      - SPRING_CLOUD_AWS_CREDENTIALS_ACCESS_KEY=${MINIO_ROOT_USER:-admin}
+      - SPRING_CLOUD_AWS_CREDENTIALS_SECRET_KEY=${MINIO_ROOT_PASSWORD:-password}
+      - SPRING_CLOUD_AWS_REGION_STATIC=ap-northeast-2
+      - SPRING_CLOUD_AWS_S3_ENDPOINT=http://minio:9000
+      - SPRING_MAIL_HOST=smtp.gmail.com
+      - SPRING_MAIL_PORT=587
+      - SPRING_MAIL_USERNAME=${MAIL_USER}
+      - SPRING_MAIL_PASSWORD=${MAIL_PASS}
+      - SPRING_MAIL_PROPERTIES_MAIL_SMTP_AUTH=true
+      - SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE=true
+      - SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_REQUIRED=true
+      - SPRING_MAIL_PROPERTIES_MAIL_SMTP_CONNECTIONTIMEOUT=5000
+      - SPRING_MAIL_PROPERTIES_MAIL_SMTP_TIMEOUT=5000
+      - SPRING_MAIL_PROPERTIES_MAIL_SMTP_WRITETIMEOUT=5000
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      maia-engine:
+        condition: service_healthy
+    networks:
+      - blog-net
+
