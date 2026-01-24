@@ -37,3 +37,41 @@ services:
     networks:
       - blog-net
 
+  maia-engine:
+    build: ./maia-engine
+    container_name: maia-engine
+    restart: always
+    environment:
+      - MAIA_MODEL=maia3-23m
+      - MAIA_DEVICE=cpu
+      - MAIA_USE_AMP=false
+      - HF_HOME=/models/huggingface
+    volumes:
+      - maia_model_cache:/models
+    healthcheck:
+      test: [ "CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health', timeout=2).read()" ]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    networks:
+      - blog-net
+
+  db:
+    image: postgres:17-alpine
+    container_name: blog-db
+    restart: always
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASS}
+      POSTGRES_DB: blog_db
+    volumes:
+      - ./postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${DB_USER} -d blog_db" ]
+      interval: 5s
+      retries: 5
+    networks:
+      - blog-net
+
