@@ -73,3 +73,42 @@ jobs:
           maia_archive_tmp="/tmp/maia-engine.tar.gz.new"
           maia_service_tmp="/tmp/maia-engine.service.new"
 
+          jar_file="$(find build/libs -maxdepth 1 -type f -name '*.jar' ! -name '*plain.jar' | sort | head -n 1)"
+          if [ -z "$jar_file" ]; then
+            echo "No boot jar found under build/libs"
+            exit 1
+          fi
+
+          mkdir -p ~/.ssh
+          printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/blog-backend-deploy
+          chmod 600 ~/.ssh/blog-backend-deploy
+          ssh-keyscan -p "$port" "$DEPLOY_HOST" >> ~/.ssh/known_hosts
+
+          scp -i ~/.ssh/blog-backend-deploy -P "$port" "$jar_file" "$DEPLOY_USER@$DEPLOY_HOST:$remote_tmp"
+          scp -i ~/.ssh/blog-backend-deploy -P "$port" maia-engine.tar.gz "$DEPLOY_USER@$DEPLOY_HOST:$maia_archive_tmp"
+          scp -i ~/.ssh/blog-backend-deploy -P "$port" deploy/systemd/maia-engine.service "$DEPLOY_USER@$DEPLOY_HOST:$maia_service_tmp"
+
+          ssh -i ~/.ssh/blog-backend-deploy -p "$port" "$DEPLOY_USER@$DEPLOY_HOST" \
+            "REMOTE_DIR='$remote_dir' SERVICE_NAME='$service_name' MAIA_SERVICE_NAME='$maia_service_name' JAR_NAME='$jar_name' REMOTE_TMP='$remote_tmp' MAIA_ARCHIVE_TMP='$maia_archive_tmp' MAIA_SERVICE_TMP='$maia_service_tmp' bash -s" <<'EOF'
+          set -euo pipefail
+
+          mkdir -p "$REMOTE_DIR"
+
+          MAIA_DIR="$REMOTE_DIR/maia-engine"
+          MAIA_NEW_DIR="$REMOTE_DIR/maia-engine.new"
+          MAIA_VENV_DIR="$REMOTE_DIR/maia-engine-venv"
+          MAIA_CACHE_DIR="$REMOTE_DIR/.cache/huggingface"
+          MAIA_REQUIREMENTS_HASH_FILE="$MAIA_VENV_DIR/.requirements.sha256"
+
+          python_bin=""
+          if command -v python3.11 >/dev/null 2>&1; then
+            python_bin="$(command -v python3.11)"
+          elif command -v python3 >/dev/null 2>&1; then
+            python_bin="$(command -v python3)"
+          fi
+
+          if [ -z "$python_bin" ]; then
+            echo "python3.11 or python3 is required on the deploy server"
+            exit 1
+          fi
+
