@@ -158,3 +158,39 @@ jobs:
               fi
             done
 
+            echo "failed to install a working python venv package."
+            return 1
+          }
+
+          if ! command -v git >/dev/null 2>&1; then
+            echo "git is required on the deploy server because maia3 is installed from GitHub"
+            exit 1
+          fi
+
+          rm -rf "$MAIA_NEW_DIR"
+          mkdir -p "$MAIA_NEW_DIR" "$MAIA_CACHE_DIR"
+          tar -xzf "$MAIA_ARCHIVE_TMP" -C "$MAIA_NEW_DIR" --strip-components=1
+
+          maia_backup_path=""
+          if [ -d "$MAIA_DIR" ]; then
+            maia_backup_path="$MAIA_DIR.$(date +%Y%m%d%H%M%S).bak"
+            mv "$MAIA_DIR" "$maia_backup_path"
+          fi
+          mv "$MAIA_NEW_DIR" "$MAIA_DIR"
+
+          rollback_maia() {
+            if [ -n "$maia_backup_path" ] && [ -d "$maia_backup_path" ]; then
+              rm -rf "$MAIA_DIR"
+              mv "$maia_backup_path" "$MAIA_DIR"
+              if systemctl cat "$MAIA_SERVICE_NAME" >/dev/null 2>&1; then
+                systemctl restart "$MAIA_SERVICE_NAME" || true
+              fi
+            fi
+          }
+
+          if ! ensure_python_venv; then
+            rollback_maia
+            echo "failed to prepare Python venv support on the deploy server."
+            exit 1
+          fi
+
