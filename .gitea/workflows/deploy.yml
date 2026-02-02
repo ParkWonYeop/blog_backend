@@ -230,3 +230,41 @@ jobs:
             printf '%s\n' "$requirements_hash" > "$MAIA_REQUIREMENTS_HASH_FILE"
           fi
 
+          if ! "$MAIA_VENV_DIR/bin/python" -m py_compile "$MAIA_DIR/app/main.py"; then
+            rollback_maia
+            exit 1
+          fi
+
+          cp "$MAIA_SERVICE_TMP" "/etc/systemd/system/$MAIA_SERVICE_NAME"
+          chmod 0644 "/etc/systemd/system/$MAIA_SERVICE_NAME"
+          systemctl daemon-reload
+          systemctl enable "$MAIA_SERVICE_NAME"
+
+          if ! systemctl restart "$MAIA_SERVICE_NAME"; then
+            rollback_maia
+            journalctl -u "$MAIA_SERVICE_NAME" -n 120 --no-pager
+            exit 1
+          fi
+
+          sleep 5
+
+          if ! systemctl is-active --quiet "$MAIA_SERVICE_NAME"; then
+            rollback_maia
+            journalctl -u "$MAIA_SERVICE_NAME" -n 120 --no-pager
+            exit 1
+          fi
+
+          if command -v curl >/dev/null 2>&1; then
+            if ! curl -fsS http://127.0.0.1:8000/health >/dev/null; then
+              rollback_maia
+              journalctl -u "$MAIA_SERVICE_NAME" -n 120 --no-pager
+              exit 1
+            fi
+          else
+            if ! "$python_bin" -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=5).read()"; then
+              rollback_maia
+              journalctl -u "$MAIA_SERVICE_NAME" -n 120 --no-pager
+              exit 1
+            fi
+          fi
+
