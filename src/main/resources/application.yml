@@ -1,5 +1,5 @@
 spring:
   application:
-    name: blog-backend
+    name: blog-api
   profiles:
     default: prod

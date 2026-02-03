@@ -1,36 +1,44 @@
 spring:
-  application:
-    name: blog-api
-
+  # [파일 업로드 제한 설정]
+  # 고해상도 이미지나 대용량 미디어를 처리하기 위해 서블릿의 멀티파트 제약 조건을 완화합니다.
+  # Nginx 등의 리버스 프록시를 앞단에 둘 경우, 프록시 설정(client_max_body_size)도 함께 조정해야 합니다.
   servlet:
     multipart:
-      max-file-size: 100MB      # 파일 하나당 최대 크기 (기본 1MB -> 10MB로 증량)
-      max-request-size: 100MB   # 요청 전체 최대 크기 (여러 파일 합산)
+      max-file-size: 100MB      # 단일 파일 허용 크기
+      max-request-size: 100MB   # 요청 전체 허용 크기 (여러 파일 합산)
 
-  # 1. 데이터베이스 설정
+  # [데이터베이스 설정]
+  # Docker Compose 환경에서의 컨테이너 간 통신을 지원하기 위해 호스트 등을 환경변수로 동적 주입받습니다.
   datasource:
-    # Docker 내부 통신용
     url: jdbc:postgresql://${SPRING_DATASOURCE_URL}
     username: ${SPRING_DATASOURCE_USERNAME}
     password: ${SPRING_DATASOURCE_PASSWORD}
     driver-class-name: org.postgresql.Driver
 
-  # 2. JPA 설정
+  # [JPA / Hibernate 설정]
   jpa:
     hibernate:
+      # 운영 환경 데이터 보존을 위해 스키마 자동 생성(create/update) 대신 검증(validate) 모드를 사용합니다.
+      # 스키마 불일치 시 애플리케이션 실행을 중단하여 잠재적 오류를 방지합니다.
       ddl-auto: validate
     properties:
       hibernate:
-        format_sql: false       # 쿼리 줄바꿈
-        show_sql: false         # 쿼리 출력
-        highlight_sql: false    # 쿼리 색상 강조 (가독성 UP)
-    open-in-view: false        # OSIV 종료 (DB 커넥션 최적화)
+        format_sql: false       # 운영 로그 가독성을 위해 SQL 포맷팅 비활성화 (디버깅 시 true 권장)
+        show_sql: false         # 성능 저하 방지를 위해 콘솔 출력 비활성화 (로거로 대체 권장)
+        highlight_sql: false
 
+    # [OSIV(Open Session In View) 비활성화]
+    # 영속성 컨텍스트의 생존 범위를 트랜잭션 범위로 한정합니다.
+    # View 렌더링 시점까지 DB 커넥션을 점유하는 것을 방지하여, 트래픽 급증 시 커넥션 풀 고갈 리스크를 최소화합니다.
+    open-in-view: false
+
+  # [SMTP 메일 설정]
+  # 회원가입 인증 코드(OTP) 발송을 위한 Gmail SMTP 설정입니다.
   mail:
     host: smtp.gmail.com
     port: 587
-    username: ${MAIL_USERNAME} # 환경변수 처리 추천
-    password: ${MAIL_PASSWORD} # 앱 비밀번호 (16자리)
+    username: ${MAIL_USERNAME}
+    password: ${MAIL_PASSWORD} # Google App Password (2단계 인증 앱 비밀번호)
     properties:
       mail:
         smtp:
@@ -38,22 +46,27 @@ spring:
           starttls:
             enable: true
             required: true
+          # 네트워크 지연 시 스레드 차단을 막기 위한 타임아웃 설정 (Fail-Fast)
           connectiontimeout: 5000
           timeout: 5000
           writetimeout: 5000
 
-  # 3. Redis 설정
+  # [Redis 설정]
+  # Refresh Token의 저장(TTL) 및 캐싱(Caching) 처리를 위한 인메모리 데이터 저장소입니다.
   data:
     redis:
       host: ${REDIS_HOST:localhost}
       port: 6379
 
+  # [AWS S3 / MinIO 설정]
+  # 정적 리소스(이미지) 저장을 위한 오브젝트 스토리지 설정입니다.
+  # 로컬 개발 시에는 MinIO를, 운영 시에는 실제 AWS S3를 바라보도록 환경변수로 제어합니다.
   cloud:
     aws:
       s3:
         bucket: blog-bucket
-        endpoint: https://s3.wypark.me
-        path-style-access-enabled: true
+        endpoint: https://s3.wypark.me # MinIO 엔드포인트 또는 AWS S3 리전 엔드포인트
+        path-style-access-enabled: true # MinIO 호환성을 위해 Path Style 접근 허용
       credentials:
         access-key: ${S3_ACCESS_KEY}
         secret-key: ${S3_SECRET_KEY}
@@ -62,9 +75,11 @@ spring:
       stack:
         auto: false
 
-# 5. JWT 설정
+# [JWT(Json Web Token) 정책 설정]
 jwt:
-  # 보안 경고: 실제 배포 시에는 절대 코드에 비밀키를 남기지 마세요. 환경변수로 주입받으세요.
+  # [보안 경고]
+  # Secret Key는 서명 위조 방지를 위한 핵심 키이므로, 절대 소스코드에 평문으로 노출하지 않고
+  # CI/CD 파이프라인 변수(${JWT_SECRET})를 통해 주입받습니다.
   secret: ${JWT_SECRET}
-  access-token-validity: 600000
-  refresh-token-validity: 604800000
+  access-token-validity: 600000       # 10분 (짧은 만료 시간으로 탈취 시 피해 최소화)
+  refresh-token-validity: 604800000   # 7일 (RTR 적용으로 장기 유효기간 허용)
