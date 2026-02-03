@@ -1,6 +1,7 @@
 package me.wypark.blogbackend.core.error
 
 import me.wypark.blogbackend.api.common.ApiResponse
+import org.slf4j.LoggerFactory
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.MethodArgumentNotValidException
@@ -16,6 +17,8 @@ import org.springframework.web.bind.annotation.RestControllerAdvice
  */
 @RestControllerAdvice
 class GlobalExceptionHandler {
+
+    private val log = LoggerFactory.getLogger(this.javaClass)!!
 
     /**
      * [비즈니스 로직 예외 처리]
@@ -58,7 +61,7 @@ class GlobalExceptionHandler {
      */
     @ExceptionHandler(Exception::class)
     fun handleException(e: Exception): ResponseEntity<ApiResponse<Nothing>> {
-        e.printStackTrace() // 실제 운영 환경에서는 SLF4J 등의 로거를 사용하여 파일/ELK로 수집해야 함
+        log.error("Error occurred: ", e)
         return ResponseEntity
             .status(HttpStatus.INTERNAL_SERVER_ERROR)
             .body(ApiResponse.error("서버 내부 오류가 발생했습니다."))
