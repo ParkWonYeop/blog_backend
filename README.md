@@ -1,5 +1,11 @@
 # 🛠️ Spring Boot Blog API Server
 
+## Result
+
+[**Blog**](https://blog.wypark.me)
+
+위 링크에서 이 프로젝트의 결과를 보실 수 있습니다.
+
 ## 🚀 Project Overview
 기존 **Jekyll(GitHub Pages)** 로 운영하던 정적 블로그의 한계를 극복하고, 확장 가능한 블로그 시스템을 구축하기 위해 개발한 **Spring Boot 기반의 REST API 서버**입니다.
 
