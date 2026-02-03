@@ -268,3 +268,43 @@ jobs:
             fi
           fi
 
+          if [ -n "$maia_backup_path" ]; then
+            rm -rf "$maia_backup_path"
+          fi
+
+          cd "$REMOTE_DIR"
+
+          backup_path=""
+          if [ -f "$JAR_NAME" ]; then
+            backup_path="$JAR_NAME.$(date +%Y%m%d%H%M%S).bak"
+            cp "$JAR_NAME" "$backup_path"
+          fi
+
+          mv "$REMOTE_TMP" "$JAR_NAME"
+          chown root:root "$JAR_NAME"
+          chmod 0644 "$JAR_NAME"
+
+          rollback_backend() {
+            if [ -n "$backup_path" ] && [ -f "$backup_path" ]; then
+              cp "$backup_path" "$JAR_NAME"
+              systemctl restart "$SERVICE_NAME" || true
+            fi
+          }
+
+          if ! systemctl restart "$SERVICE_NAME"; then
+            rollback_backend
+            journalctl -u "$SERVICE_NAME" -n 120 --no-pager
+            exit 1
+          fi
+
+          sleep 8
+
+          if ! systemctl is-active --quiet "$SERVICE_NAME"; then
+            rollback_backend
+            journalctl -u "$SERVICE_NAME" -n 120 --no-pager
+            exit 1
+          fi
+
+          systemctl is-active "$MAIA_SERVICE_NAME"
+          systemctl is-active "$SERVICE_NAME"
+          EOF
