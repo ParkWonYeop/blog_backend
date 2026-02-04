@@ -32,3 +32,26 @@
 13. Spring Boot jar를 `/root/blog-backend/blog-backend.jar`로 교체
 14. `blog-api.service` 재시작 후 active 상태 확인
 
+Maia 엔진 배포 실패 시 이전 Maia 코드 디렉터리로 롤백을 시도한다. 백엔드 jar 재시작 실패 시 직전 jar 백업으로 롤백을 시도한다.
+
+## Gitea Actions 준비
+
+- Repository Settings에서 Actions가 활성화되어 있어야 한다.
+- Gitea Runner가 `ubuntu-latest` label을 처리할 수 있어야 한다.
+- `actions/checkout`, `actions/setup-java`, `actions/setup-python` 액션을 사용할 수 있어야 한다.
+
+## Repository Secrets
+
+Gitea repository secrets에 다음 값을 등록한다.
+
+| 이름 | 설명 |
+| --- | --- |
+| `DEPLOY_HOST` | 배포 서버 호스트 또는 IP |
+| `DEPLOY_PORT` | SSH 포트. 비우면 22 |
+| `DEPLOY_USER` | 배포 서버 SSH 사용자 |
+| `DEPLOY_KEY` | 배포 서버 접속용 private key |
+
+## 서버 준비 사항
+
+서버에는 다음이 필요하다.
+
