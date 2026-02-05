@@ -55,3 +55,31 @@ Gitea repository secrets에 다음 값을 등록한다.
 
 서버에는 다음이 필요하다.
 
+- Java 21
+- systemd
+- Python 3.11 또는 Python 3
+- Python venv 모듈(`python3-venv` 계열 패키지). 없으면 배포 스크립트가 `apt-get` 또는 `sudo apt-get`으로 자동 설치를 시도한다.
+- `git`
+- `sha256sum`
+- `tar`
+- 외부 네트워크 접근. `requirements.txt`가 `git+https://github.com/CSSLab/maia3.git`를 설치한다.
+- `DEPLOY_USER`가 `/root/blog-backend`에 쓸 수 있고 `/etc/systemd/system`에 서비스 파일을 설치하며 `systemctl`을 실행할 수 있어야 한다.
+- Python venv 패키지가 없는 서버에서는 `DEPLOY_USER`가 `apt-get install`을 실행할 수 있어야 한다. root 접속이 아니면 passwordless sudo 권한이 필요하다.
+
+첫 설치 또는 Maia3 의존성 변경 시 Python 패키지 설치와 모델 캐시 준비 때문에 배포가 오래 걸릴 수 있다. 모델 캐시는 `/root/blog-backend/.cache/huggingface`에 저장된다.
+
+## 체스 배포 확인
+
+배포 후 서버에서 다음을 확인할 수 있다.
+
+```bash
+systemctl status maia-engine.service
+curl -fsS http://127.0.0.1:8000/health
+systemctl status blog-api.service
+```
+
+백엔드 체스 API는 로그인한 사용자만 사용할 수 있다. 퍼즐 API(`/api/chess-puzzles/**`)는 비로그인 접근이 유지된다.
+
+## Docker Compose
+
+`docker-compose.yml`에도 Maia 엔진 서비스가 정의되어 있지만, 현재 CI/CD 경로는 Docker Compose가 아니라 systemd 기반 jar + Maia systemd 서비스 배포를 사용한다.
