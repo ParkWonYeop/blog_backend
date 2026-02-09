@@ -33,3 +33,38 @@ Maia 기반 체스 대국을 하나의 백엔드로 제공합니다.
 | Test | JUnit 5, MockMvc, H2 PostgreSQL compatibility mode |
 | Runtime | Gradle Wrapper, Docker, Docker Compose |
 
+## 아키텍처
+
+```text
+src/main/kotlin/me/wypark/blogbackend
+├── api              HTTP 요청/응답과 컨트롤러
+├── application      유스케이스, 입출력 모델, 외부 시스템 포트
+├── domain           엔티티, 도메인 규칙, 저장소 계약
+├── infrastructure   Redis, S3, JDBC, Security 어댑터
+└── core             Spring 설정, JWT, 공통 예외 처리
+
+maia-engine           Maia3 추론을 제공하는 독립 FastAPI 서비스
+```
+
+핵심 의존성 방향은 `api → application → domain`입니다. 애플리케이션 계층은 Redis나 S3 같은 구현체를
+직접 참조하지 않고 포트 인터페이스에 의존합니다. 이 규칙은
+[`LayerDependencyTest`](src/test/kotlin/me/wypark/blogbackend/architecture/LayerDependencyTest.kt)에서 자동으로
+검증합니다.
+
+## 빠른 시작
+
+### 1. 사전 준비
+
+- JDK 21
+- Docker 및 Docker Compose
+- 이메일 가입 기능을 사용할 경우 SMTP 계정과 앱 비밀번호
+
+저장소는 Gradle Wrapper를 포함하므로 별도의 Gradle 설치는 필요하지 않습니다.
+
+저장소를 받은 뒤 프로젝트 루트에서 환경 파일을 준비합니다.
+
+```bash
+cd blog-backend
+cp .env.example .env
+```
+
