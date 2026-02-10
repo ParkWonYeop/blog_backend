@@ -103,3 +103,37 @@ curl http://localhost:8080/api/posts
 curl 'http://localhost:8080/api/chess-puzzles/today?timezone=Asia/Seoul'
 ```
 
+중지는 실행 중인 애플리케이션에서 `Ctrl+C`를 누른 뒤 다음 명령을 사용합니다.
+
+```bash
+docker compose down
+```
+
+데이터까지 완전히 초기화하려면 `postgres_data/`, `minio_data/` 디렉터리를 별도로 삭제해야 합니다.
+
+### 3. 기존 스키마를 사용하는 실행
+
+운영 DB처럼 이미 스키마와 Flyway 이력이 준비된 환경은 기본 구성으로 실행할 수 있습니다.
+
+```bash
+docker compose up -d --build
+docker compose logs -f blog-api
+```
+
+## 테스트와 빌드
+
+```bash
+./gradlew test
+./gradlew clean check bootJar
+```
+
+테스트는 H2 인메모리 DB를 PostgreSQL 호환 모드로 사용하므로 PostgreSQL, Redis, MinIO를 별도로 실행하지
+않아도 됩니다. 실행 JAR은 `build/libs/blog-backend-0.0.1-SNAPSHOT.jar`에 생성됩니다.
+
+시스템 기본 JDK가 21이 아니라면 명시적으로 지정합니다.
+
+```bash
+JAVA_HOME=/path/to/jdk-21 ./gradlew clean check
+```
+
+## 인증 및 관리자 계정 준비
