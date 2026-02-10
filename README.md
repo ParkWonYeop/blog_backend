@@ -68,3 +68,38 @@ cd blog-backend
 cp .env.example .env
 ```
 
+`.env`의 `JWT_SECRET`에는 최소 32바이트 길이의 Base64 키를 사용합니다.
+
+```bash
+openssl rand -base64 32
+```
+
+생성된 값을 `.env`의 `JWT_SECRET`에 넣고 DB, 메일, MinIO 값을 원하는 환경에 맞게 변경합니다.
+
+### 2. 빈 DB에서 로컬 실행
+
+현재 운영 프로필은 기존 운영 스키마를 검증하도록 `ddl-auto: validate`와 Flyway를 사용합니다. 빈 DB에서
+기능을 확인할 때는 먼저 PostgreSQL·Redis·MinIO·Maia 엔진을 실행하고, 로컬 컨테이너에 한해 Hibernate가
+스키마를 초기화하도록 실행합니다.
+
+```bash
+docker compose build blog-api maia-engine
+docker compose up -d db redis minio maia-engine
+docker compose run --rm --service-ports \
+  -e SPRING_FLYWAY_ENABLED=false \
+  -e SPRING_JPA_HIBERNATE_DDL_AUTO=update \
+  blog-api
+```
+
+이 실행 방식은 로컬의 빈 DB를 빠르게 준비하기 위한 용도입니다. 운영 환경에서는 Flyway를 끄거나
+`ddl-auto=update`를 사용하지 않습니다. Maia 엔진은 첫 실행 시 모델 파일을 내려받아
+`maia_model_cache` 볼륨에 보관하므로 준비 시간이 더 걸릴 수 있습니다.
+
+애플리케이션이 시작되면 공개 API로 상태를 확인합니다.
+
+```bash
+curl http://localhost:8080/api/profile
+curl http://localhost:8080/api/posts
+curl 'http://localhost:8080/api/chess-puzzles/today?timezone=Asia/Seoul'
+```
+
