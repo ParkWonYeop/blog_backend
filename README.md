@@ -137,3 +137,37 @@ JAVA_HOME=/path/to/jdk-21 ./gradlew clean check
 ```
 
 ## 인증 및 관리자 계정 준비
+
+### 회원가입과 이메일 인증
+
+유효한 SMTP 설정이 준비된 상태에서 회원가입합니다.
+
+```bash
+curl -X POST http://localhost:8080/api/auth/signup \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "email": "admin@example.com",
+    "password": "password123",
+    "nickname": "admin"
+  }'
+```
+
+메일로 받은 6자리 코드를 인증합니다.
+
+```bash
+curl -X POST http://localhost:8080/api/auth/verify \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "email": "admin@example.com",
+    "code": "123456"
+  }'
+```
+
+### 관리자 권한 부여
+
+신규 가입자는 `ROLE_USER`로 생성됩니다. 로컬 블로그 운영 계정은 DB 콘솔에서 관리자 권한을 부여합니다.
+
+```bash
+docker compose exec db sh -lc 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB"'
+```
+
