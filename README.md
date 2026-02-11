@@ -171,3 +171,35 @@ curl -X POST http://localhost:8080/api/auth/verify \
 docker compose exec db sh -lc 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB"'
 ```
 
+```sql
+UPDATE member
+SET role = 'ROLE_ADMIN', is_verified = TRUE
+WHERE email = 'admin@example.com';
+```
+
+로그인 후 응답의 `accessToken`을 관리자 API에 사용합니다.
+
+```bash
+curl -X POST http://localhost:8080/api/auth/login \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "email": "admin@example.com",
+    "password": "password123"
+  }'
+```
+
+```bash
+curl -X POST http://localhost:8080/api/admin/posts \
+  -H 'Content-Type: application/json' \
+  -H 'Authorization: Bearer <access-token>' \
+  -d '{
+    "title": "첫 번째 글",
+    "content": "# Hello Blog",
+    "slug": "hello-blog",
+    "categoryId": null,
+    "tags": ["Kotlin", "Spring"]
+  }'
+```
+
+## API 요약
+
