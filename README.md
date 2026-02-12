@@ -203,3 +203,40 @@ curl -X POST http://localhost:8080/api/admin/posts \
 
 ## API 요약
 
+| Method | Endpoint | 인증 | 설명 |
+| --- | --- | --- | --- |
+| `POST` | `/api/auth/signup` | 공개 | 회원가입 및 인증 메일 발송 |
+| `POST` | `/api/auth/verify` | 공개 | 이메일 인증 |
+| `POST` | `/api/auth/login` | 공개 | Access/Refresh Token 발급 |
+| `POST` | `/api/auth/reissue` | 공개 | 토큰 재발급 및 Rotation |
+| `POST` | `/api/auth/logout` | 로그인 | Refresh Token 삭제 |
+| `GET` | `/api/posts` | 공개 | 게시글 목록·검색 |
+| `GET` | `/api/posts/{slug}` | 공개 | 상세 조회 및 조회수 증가 |
+| `GET` | `/api/categories` | 공개 | 카테고리 트리 조회 |
+| `GET` | `/api/comments?postSlug=...` | 공개 | 댓글 트리 조회 |
+| `POST` | `/api/comments` | 공개 | 회원·비회원 댓글 작성 |
+| `DELETE` | `/api/comments/{id}` | 공개 | 작성자 또는 비밀번호 검증 후 삭제 |
+| `GET` | `/api/profile` | 공개 | 블로그 프로필 조회 |
+| `GET` | `/api/chess-puzzles/today` | 공개 | 오늘의 체스 퍼즐 |
+| `POST` | `/api/chess/games` | 로그인 | Maia 체스 게임 생성 |
+| `GET` | `/api/chess/games` | 로그인 | 내 체스 게임 목록 조회 |
+| `GET` | `/api/chess/games/stats` | 로그인 | 내 체스 게임 전적 조회 |
+| `GET` | `/api/chess/games/{gameId}` | 로그인 | 진행 중이거나 저장된 게임 조회 |
+| `GET` | `/api/chess/games/{gameId}/pgn` | 로그인 | 게임 PGN 조회 |
+| `POST` | `/api/chess/games/{gameId}/moves` | 로그인 | UCI 형식의 수를 두고 Maia 응답 요청 |
+| `POST` | `/api/chess/games/{gameId}/resign` | 로그인 | 게임 기권 |
+| `POST` | `/api/chess/games/{gameId}/undo` | 로그인 | 마지막 사용자 수와 Maia 응답 무르기 |
+| `GET` | `/api/admin/dashboard` | 관리자 | 통계·액션 아이템 조회 |
+| `POST/PUT/DELETE` | `/api/admin/posts/**` | 관리자 | 게시글 관리 |
+| `POST/PUT/DELETE` | `/api/admin/categories/**` | 관리자 | 카테고리 관리 |
+| `GET/DELETE` | `/api/admin/comments/**` | 관리자 | 댓글 관리 |
+| `POST` | `/api/admin/images` | 관리자 | 이미지 업로드 |
+| `PUT` | `/api/admin/profile` | 관리자 | 프로필 수정 |
+
+게시글 목록은 `keyword`, `category`, `tag`, `page`, `size`, `sort` 쿼리 파라미터를 지원합니다. 대시보드는
+`range=7d|30d|90d`와 IANA timezone 값을 받습니다.
+
+## 공통 응답과 오류
+
+모든 API는 같은 응답 형태를 사용합니다.
+
