@@ -240,3 +240,39 @@ curl -X POST http://localhost:8080/api/admin/posts \
 
 모든 API는 같은 응답 형태를 사용합니다.
 
+```json
+{
+  "code": "SUCCESS",
+  "message": "요청이 성공했습니다.",
+  "data": {}
+}
+```
+
+인증 실패는 `401 UNAUTHORIZED`, 관리자 권한 부족은 `403 FORBIDDEN`을 반환합니다. 입력 검증 및 비즈니스
+규칙 위반은 같은 응답 구조의 오류 메시지로 반환되며, 예상하지 못한 예외의 내부 내용은 클라이언트에
+노출하지 않습니다.
+
+## 환경 변수
+
+| 변수 | 필수 환경 | 설명 |
+| --- | --- | --- |
+| `DB_USER`, `DB_PASS` | Docker Compose | 로컬 PostgreSQL 계정 |
+| `SPRING_DATASOURCE_URL` | 운영 | `host:port/database` 형식의 PostgreSQL 주소 |
+| `SPRING_DATASOURCE_USERNAME`, `SPRING_DATASOURCE_PASSWORD` | 운영 | PostgreSQL 인증 정보 |
+| `JWT_SECRET` | 전체 | Base64 인코딩된 JWT HMAC 키 |
+| `MAIL_USER`, `MAIL_PASS` | Docker Compose | SMTP 계정과 앱 비밀번호 |
+| `MAIL_USERNAME`, `MAIL_PASSWORD` | 운영 | SMTP 인증 정보 |
+| `REDIS_HOST` | 운영 | Redis 호스트 |
+| `MAIA_ENGINE_URL` | 운영 | Maia FastAPI 서비스 주소, 기본값 `http://localhost:8000` |
+| `MAIA_GAME_SESSION_TTL` | 운영 | Redis 게임 세션 TTL, 기본값 `PT6H` |
+| `S3_ACCESS_KEY`, `S3_SECRET_KEY` | 운영 | S3 호환 저장소 인증 정보 |
+| `MINIO_ROOT_USER`, `MINIO_ROOT_PASSWORD` | 로컬 | MinIO 관리자 계정 |
+
+운영 설정은 [`application-prod.yml`](src/main/resources/application-prod.yml), 테스트 설정은
+[`application-test.yml`](src/test/resources/application-test.yml)에 있습니다. CI/CD와 서버 배포 흐름은
+[`docs/ci-cd.md`](docs/ci-cd.md)를 참고합니다.
+
+## 개발 규칙
+
+구조, 테스트 범위, 데이터베이스 변경과 외부 동작 호환성 규칙은 [`AGENTS.md`](AGENTS.md)에 정리되어
+있습니다. 변경 전 해당 문서를 먼저 읽고, 최소한 `./gradlew test`를 통과시켜야 합니다.
