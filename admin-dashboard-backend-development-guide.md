@@ -41,3 +41,36 @@ PUT /api/admin/profile
 POST /api/admin/images
 ```
 
+신규 대시보드 기능은 기존 API를 깨지 않고 관리자 API만 추가한다.
+
+## 3. 신규 API 요약
+
+MVP에서 반드시 구현할 엔드포인트:
+
+```http
+GET /api/admin/dashboard?range=30d&timezone=Asia/Seoul
+```
+
+향후 세부 화면이 커질 때 선택적으로 분리할 수 있는 엔드포인트:
+
+```http
+GET /api/admin/dashboard/traffic?range=30d&timezone=Asia/Seoul
+GET /api/admin/dashboard/posts/top?range=7d&size=10&timezone=Asia/Seoul
+GET /api/admin/dashboard/categories?range=30d&timezone=Asia/Seoul
+GET /api/admin/dashboard/action-items?timezone=Asia/Seoul
+```
+
+프론트 1차 구현은 통합 엔드포인트인 `/api/admin/dashboard`만 사용한다. 분리 엔드포인트는 응답이 커지거나 위젯별 캐싱이 필요할 때 추가한다.
+
+## 4. 공통 응답 규격
+
+프론트는 기존 `ApiResponse<T>` 규격을 사용한다.
+
+```ts
+interface ApiResponse<T> {
+  code: string;
+  message: string;
+  data: T;
+}
+```
+
