@@ -74,3 +74,40 @@ interface ApiResponse<T> {
 }
 ```
 
+성공 예:
+
+```json
+{
+  "code": "SUCCESS",
+  "message": "OK",
+  "data": {}
+}
+```
+
+권장 오류:
+
+```json
+{
+  "code": "FORBIDDEN",
+  "message": "관리자 권한이 필요합니다.",
+  "data": null
+}
+```
+
+권한:
+
+- 모든 `/api/admin/dashboard*` 엔드포인트는 관리자 전용이다.
+- 프론트에서 관리자 UI를 숨기더라도 백엔드가 최종 권한 검사를 수행한다.
+- 비로그인: 401
+- 로그인했지만 관리자 아님: 403
+
+## 5. 날짜와 집계 기준
+
+기본 timezone:
+
+```text
+Asia/Seoul
+```
+
+쿼리 파라미터:
+
