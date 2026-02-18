@@ -111,3 +111,43 @@ Asia/Seoul
 
 쿼리 파라미터:
 
+```http
+timezone=Asia/Seoul
+range=7d | 30d | 90d
+```
+
+기간 정의:
+
+- 오늘 조회수: `timezone` 기준 오늘 00:00:00부터 23:59:59까지
+- 최근 7일 조회수: 오늘 포함 7일, 즉 오늘 + 이전 6일
+- 최근 30일 조회수: 오늘 포함 30일, 즉 오늘 + 이전 29일
+- 최근 90일 조회수: 오늘 포함 90일, 즉 오늘 + 이전 89일
+
+전 기간 대비:
+
+- 오늘 비교값: 어제
+- 최근 7일 비교값: 직전 7일
+- 최근 30일 비교값: 직전 30일
+- 최근 90일 비교값: 직전 90일
+
+`changeRate` 계산:
+
+```text
+previousValue = 0이고 currentValue > 0이면 changeRate는 null 또는 100으로 고정하지 않는다.
+권장: null
+
+previousValue > 0이면:
+((currentValue - previousValue) / previousValue) * 100
+소수점 둘째 자리까지 반올림
+```
+
+프론트는 `changeRate`가 없으면 변화율 badge를 숨긴다.
+
+## 6. 조회수 수집 방식
+
+현재 `Post.viewCount`는 총 누적 조회수로 사용된다. 대시보드에는 일별 집계가 필요하므로 누적 카운트만으로는 충분하지 않다.
+
+### 6.1 권장 MVP 방식
+
+글 상세 조회 시 기존 누적 조회수를 증가시키는 흐름에 일별 집계 upsert를 추가한다.
+
