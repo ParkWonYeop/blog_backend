@@ -151,3 +151,40 @@ previousValue > 0이면:
 
 글 상세 조회 시 기존 누적 조회수를 증가시키는 흐름에 일별 집계 upsert를 추가한다.
 
+대상 요청:
+
+```http
+GET /api/posts/{slug}
+```
+
+처리:
+
+1. 게시글 조회
+2. 조회수 증가 정책에 따라 `post.viewCount` 증가
+3. `post_view_daily_stats`에서 `(post_id, stat_date)` row upsert
+4. 관리자 대시보드는 이 daily stats를 조회
+
+주의:
+
+- 새로고침마다 증가되는 현재 정책이 있다면 MVP에서는 그대로 따른다.
+- 중복 조회 방지는 별도 정책이므로 2차에서 다룬다.
+- 검색 봇 제외 정책이 있다면 view 증가 전에 적용한다.
+
+### 6.2 선택적 고도화
+
+정확한 unique visitor가 필요해지면 다음 중 하나를 선택한다.
+
+- 익명 daily visitor key cookie 발급
+- IP + User-Agent + 날짜를 salt와 함께 hash
+- 로그인 회원 ID 기준 unique 집계
+
+개인 블로그 운영 통계 목적이라면 MVP에서는 단순 view count로 충분하다.
+
+## 7. 데이터 모델 제안
+
+기존 테이블 이름은 백엔드 프로젝트 관례에 맞춘다. 아래는 개념 모델이다.
+
+### 7.1 post_view_daily_stats
+
+글별 일간 조회수 집계 테이블.
+
