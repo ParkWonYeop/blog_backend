@@ -188,3 +188,42 @@ GET /api/posts/{slug}
 
 글별 일간 조회수 집계 테이블.
 
+```sql
+CREATE TABLE post_view_daily_stats (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  post_id BIGINT NOT NULL,
+  stat_date DATE NOT NULL,
+  view_count BIGINT NOT NULL DEFAULT 0,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY uk_post_view_daily_stats_post_date (post_id, stat_date),
+  INDEX idx_post_view_daily_stats_date (stat_date),
+  INDEX idx_post_view_daily_stats_post_id (post_id)
+);
+```
+
+설명:
+
+- `stat_date`는 `timezone` 기준 날짜다.
+- 한국 블로그 운영만 고려하면 `Asia/Seoul` 기준 LocalDate를 저장한다.
+- 다국가 timezone을 엄격히 지원하려면 UTC timestamp event table이 필요하지만 MVP에서는 과하다.
+
+### 7.2 site_view_daily_stats, 선택
+
+전체 조회수를 빠르게 보여주고 싶다면 별도 site daily table을 둘 수 있다.
+
+```sql
+CREATE TABLE site_view_daily_stats (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  stat_date DATE NOT NULL,
+  view_count BIGINT NOT NULL DEFAULT 0,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY uk_site_view_daily_stats_date (stat_date)
+);
+```
+
+하지만 `post_view_daily_stats`를 날짜별로 sum해도 되므로 처음에는 생략 가능하다.
+
+### 7.3 comment reply 계산
+
