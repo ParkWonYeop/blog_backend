@@ -227,3 +227,42 @@ CREATE TABLE site_view_daily_stats (
 
 ### 7.3 comment reply 계산
 
+답변 필요한 댓글을 계산하려면 댓글 구조에 다음 정보가 필요하다.
+
+필수:
+
+- `comment.id`
+- `comment.post_id`
+- `comment.parent_id`
+- `comment.member_id` 또는 작성자 식별 정보
+- `comment.created_at`
+
+권장:
+
+- 댓글 작성자의 role 또는 `isPostAuthor`
+- 삭제 여부
+
+MVP 기준:
+
+- 루트 댓글이고 삭제되지 않음
+- 작성자가 관리자/글 작성자가 아님
+- 해당 댓글의 자식 댓글 중 관리자/글 작성자 댓글이 없음
+
+이 조건을 만족하는 댓글 수를 `actionItems.unansweredComments`로 반환한다.
+
+## 8. 통합 대시보드 API
+
+### 8.1 Request
+
+```http
+GET /api/admin/dashboard?range=30d&timezone=Asia/Seoul
+Authorization: Bearer {accessToken}
+```
+
+Query params:
+
+| 이름 | 타입 | 필수 | 기본값 | 설명 |
+| --- | --- | --- | --- | --- |
+| `range` | `7d`, `30d`, `90d` | 아니오 | `30d` | 트래픽 차트와 성과 위젯 기준 기간 |
+| `timezone` | string | 아니오 | `Asia/Seoul` | 날짜 집계 기준 timezone |
+
