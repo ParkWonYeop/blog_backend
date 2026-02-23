@@ -299,3 +299,45 @@ interface DashboardTrafficPoint {
   views: number;
 }
 
+interface DashboardPostStat {
+  id: number;
+  title: string;
+  slug: string;
+  categoryName: string;
+  viewCount: number;
+  rangeViewCount: number;
+  commentCount?: number;
+  createdAt: string;
+  updatedAt?: string | null;
+}
+
+interface DashboardCategoryStat {
+  id: number;
+  name: string;
+  parentId?: number | null;
+  postCount: number;
+  viewCount: number;
+  recentViewCount: number;
+  lastPublishedAt?: string | null;
+  childrenCount: number;
+}
+
+interface DashboardActionItems {
+  unansweredComments: number;
+  uncategorizedPosts: number;
+  stalePopularPosts: number;
+}
+
+interface AdminDashboardResponse {
+  overview: DashboardOverview;
+  traffic: DashboardTrafficPoint[];
+  topPosts: DashboardPostStat[];
+  risingPosts: DashboardPostStat[];
+  stalePopularPosts: DashboardPostStat[];
+  recentPosts: PostSummary[];
+  recentComments: AdminCommentSummary[];
+  categoryStats: DashboardCategoryStat[];
+  actionItems: DashboardActionItems;
+}
+```
+
