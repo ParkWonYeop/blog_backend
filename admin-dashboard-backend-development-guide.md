@@ -266,3 +266,36 @@ Query params:
 | `range` | `7d`, `30d`, `90d` | 아니오 | `30d` | 트래픽 차트와 성과 위젯 기준 기간 |
 | `timezone` | string | 아니오 | `Asia/Seoul` | 날짜 집계 기준 timezone |
 
+Validation:
+
+- `range`가 허용값이 아니면 `30d`로 fallback하거나 400을 반환한다.
+- 권장: 400보다 fallback이 운영 UI에는 부드럽다.
+- `timezone`이 유효하지 않으면 `Asia/Seoul` 사용.
+
+### 8.2 Response Type
+
+```ts
+type DashboardRange = '7d' | '30d' | '90d';
+
+interface DashboardMetric {
+  value: number;
+  previousValue?: number;
+  changeRate?: number | null;
+}
+
+interface DashboardOverview {
+  todayViews: DashboardMetric;
+  weekViews: DashboardMetric;
+  monthViews: DashboardMetric;
+  totalPosts: number;
+  totalComments: number;
+  totalCategories: number;
+  lastPublishedAt?: string | null;
+  generatedAt: string;
+}
+
+interface DashboardTrafficPoint {
+  date: string;
+  views: number;
+}
+
