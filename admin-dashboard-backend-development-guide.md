@@ -341,3 +341,45 @@ interface AdminDashboardResponse {
 }
 ```
 
+`PostSummary`는 기존 `/api/posts`의 `Post` 응답과 최대한 맞춘다.
+
+```ts
+interface PostSummary {
+  id: number;
+  title: string;
+  slug: string;
+  categoryName: string;
+  viewCount: number;
+  createdAt: string;
+  tags: string[];
+}
+```
+
+`AdminCommentSummary`는 현재 프론트의 `AdminComment`와 맞춘다.
+
+```ts
+interface AdminCommentSummary {
+  id: number;
+  content: string;
+  author?: string;
+  guestNickname?: string;
+  memberNickname?: string;
+  postSlug?: string;
+  postTitle?: string;
+  createdAt: string;
+}
+```
+
+### 8.3 Response Example
+
+```json
+{
+  "code": "SUCCESS",
+  "message": "OK",
+  "data": {
+    "overview": {
+      "todayViews": {
+        "value": 311,
+        "previousValue": 277,
+        "changeRate": 12.27
+      },
