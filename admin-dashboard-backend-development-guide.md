@@ -420,3 +420,39 @@ interface AdminCommentSummary {
         "createdAt": "2026-01-02T12:04:00+09:00",
         "updatedAt": null
       }
+    ],
+    "risingPosts": [
+      {
+        "id": 2,
+        "title": "JWT - 토큰처리 방법",
+        "slug": "jwt---토큰처리-방법",
+        "categoryName": "Network",
+        "viewCount": 500,
+        "rangeViewCount": 38,
+        "commentCount": 1,
+        "createdAt": "2023-07-15T09:00:00+09:00",
+        "updatedAt": null
+      }
+    ],
+    "stalePopularPosts": [],
+    "recentPosts": [],
+    "recentComments": [],
+    "categoryStats": [
+      {
+        "id": 10,
+        "name": "Network",
+        "parentId": 3,
+        "postCount": 12,
+        "viewCount": 1200,
+        "recentViewCount": 210,
+        "lastPublishedAt": "2026-01-02T12:04:00+09:00",
+        "childrenCount": 0
+      }
+    ],
+    "actionItems": {
+      "unansweredComments": 0,
+      "uncategorizedPosts": 0,
+      "stalePopularPosts": 0
+    }
+  }
+}
