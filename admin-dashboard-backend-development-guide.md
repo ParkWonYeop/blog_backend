@@ -383,3 +383,40 @@ interface AdminCommentSummary {
         "previousValue": 277,
         "changeRate": 12.27
       },
+      "weekViews": {
+        "value": 1830,
+        "previousValue": 1504,
+        "changeRate": 21.68
+      },
+      "monthViews": {
+        "value": 7124,
+        "previousValue": 6302,
+        "changeRate": 13.04
+      },
+      "totalPosts": 102,
+      "totalComments": 18,
+      "totalCategories": 14,
+      "lastPublishedAt": "2026-01-02T12:04:00+09:00",
+      "generatedAt": "2026-05-28T20:00:00+09:00"
+    },
+    "traffic": [
+      { "date": "2026-05-22", "views": 210 },
+      { "date": "2026-05-23", "views": 245 },
+      { "date": "2026-05-24", "views": 199 },
+      { "date": "2026-05-25", "views": 287 },
+      { "date": "2026-05-26", "views": 301 },
+      { "date": "2026-05-27", "views": 277 },
+      { "date": "2026-05-28", "views": 311 }
+    ],
+    "topPosts": [
+      {
+        "id": 1,
+        "title": "RTR (Refresh Token Rotation)",
+        "slug": "rtr-(refresh-token-rotation)",
+        "categoryName": "Network",
+        "viewCount": 126,
+        "rangeViewCount": 44,
+        "commentCount": 0,
+        "createdAt": "2026-01-02T12:04:00+09:00",
+        "updatedAt": null
+      }
