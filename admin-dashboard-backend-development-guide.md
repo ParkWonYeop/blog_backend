@@ -494,3 +494,44 @@ FROM post_view_daily_stats
 WHERE stat_date BETWEEN :todayMinus29 AND :today;
 ```
 
+`totalPosts`:
+
+- 삭제되지 않은 공개 글 수
+- 비공개/임시저장 개념이 생기면 `published` 글만 count하거나 별도 필드 추가
+
+`totalComments`:
+
+- 삭제되지 않은 댓글 수
+
+`totalCategories`:
+
+- 전체 카테고리 수, 하위 포함
+
+### 9.2 traffic
+
+range 기준 날짜마다 point를 반드시 채운다.
+
+예:
+
+- 조회수가 없는 날짜도 `{ "date": "2026-05-23", "views": 0 }` 포함
+- 프론트 차트가 날짜 간격을 안정적으로 그릴 수 있다.
+
+### 9.3 topPosts
+
+range 기간 내 조회수 기준 상위 글.
+
+```sql
+SELECT p.id, p.title, p.slug, c.name AS category_name,
+       p.view_count,
+       SUM(s.view_count) AS range_view_count,
+       p.created_at,
+       p.updated_at
+FROM posts p
+JOIN post_view_daily_stats s ON s.post_id = p.id
+LEFT JOIN categories c ON c.id = p.category_id
+WHERE s.stat_date BETWEEN :fromDate AND :toDate
+GROUP BY p.id
+ORDER BY range_view_count DESC
+LIMIT 5;
+```
+
