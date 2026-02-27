@@ -456,3 +456,41 @@ interface AdminCommentSummary {
     }
   }
 }
+```
+
+## 9. 필드별 계산 방법
+
+### 9.1 overview
+
+`todayViews.value`:
+
+```sql
+SELECT COALESCE(SUM(view_count), 0)
+FROM post_view_daily_stats
+WHERE stat_date = :today;
+```
+
+`todayViews.previousValue`:
+
+```sql
+SELECT COALESCE(SUM(view_count), 0)
+FROM post_view_daily_stats
+WHERE stat_date = :yesterday;
+```
+
+`weekViews.value`:
+
+```sql
+SELECT COALESCE(SUM(view_count), 0)
+FROM post_view_daily_stats
+WHERE stat_date BETWEEN :todayMinus6 AND :today;
+```
+
+`monthViews.value`:
+
+```sql
+SELECT COALESCE(SUM(view_count), 0)
+FROM post_view_daily_stats
+WHERE stat_date BETWEEN :todayMinus29 AND :today;
+```
+
