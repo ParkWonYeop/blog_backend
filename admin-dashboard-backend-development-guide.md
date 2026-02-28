@@ -535,3 +535,38 @@ ORDER BY range_view_count DESC
 LIMIT 5;
 ```
 
+### 9.4 risingPosts
+
+최근 기간과 이전 같은 길이 기간을 비교해 증가량이 큰 글.
+
+계산:
+
+```text
+currentRangeViews = 이번 기간 조회수
+previousRangeViews = 직전 같은 기간 조회수
+growth = currentRangeViews - previousRangeViews
+```
+
+정렬:
+
+1. `growth DESC`
+2. `currentRangeViews DESC`
+
+조회수가 아주 낮은 글이 0에서 1이 되어 상승률 100%처럼 보이는 문제를 피하려면 최소 조회수 기준을 둔다.
+
+권장:
+
+- `currentRangeViews >= 5`
+
+### 9.5 stalePopularPosts
+
+최근에도 많이 읽히지만 오래 업데이트되지 않은 글.
+
+MVP 기준:
+
+- `rangeViewCount >= 10`
+- `updatedAt`이 있으면 `updatedAt <= today - 180 days`
+- `updatedAt`이 없으면 `createdAt <= today - 180 days`
+
+정렬:
+
