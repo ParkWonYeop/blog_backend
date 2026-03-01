@@ -570,3 +570,43 @@ MVP 기준:
 
 정렬:
 
+1. `rangeViewCount DESC`
+2. 오래된 순
+
+### 9.6 categoryStats
+
+카테고리별 글 수, 누적 조회수, 최근 조회수.
+
+하위 카테고리 포함 여부:
+
+- MVP는 해당 카테고리에 직접 속한 글만 계산
+- 추후 옵션으로 하위 포함 계산 가능
+
+응답 필드:
+
+- `postCount`: 직접 속한 글 수
+- `viewCount`: 직접 속한 글의 누적 조회수 합
+- `recentViewCount`: range 기간 직접 속한 글의 조회수 합
+- `lastPublishedAt`: 직접 속한 글 중 최신 발행일
+- `childrenCount`: 바로 아래 하위 카테고리 수
+
+### 9.7 actionItems
+
+`unansweredComments`:
+
+- 7.3 기준 참고
+
+`uncategorizedPosts`:
+
+- category가 null이거나 `미분류` 카테고리에 속한 글 수
+
+`stalePopularPosts`:
+
+- 9.5 기준으로 계산된 글 수
+
+## 10. 선택 분리 엔드포인트
+
+통합 대시보드가 무거워지면 다음 엔드포인트를 추가한다. 프론트는 1차에서 쓰지 않아도 된다.
+
+### 10.1 Traffic
+
