@@ -610,3 +610,41 @@ MVP 기준:
 
 ### 10.1 Traffic
 
+```http
+GET /api/admin/dashboard/traffic?range=30d&timezone=Asia/Seoul
+```
+
+응답:
+
+```json
+{
+  "code": "SUCCESS",
+  "message": "OK",
+  "data": [
+    { "date": "2026-05-22", "views": 210 }
+  ]
+}
+```
+
+### 10.2 Top posts
+
+```http
+GET /api/admin/dashboard/posts/top?range=7d&size=10&timezone=Asia/Seoul
+```
+
+응답:
+
+```json
+{
+  "code": "SUCCESS",
+  "message": "OK",
+  "data": []
+}
+```
+
+### 10.3 Category stats
+
+```http
+GET /api/admin/dashboard/categories?range=30d&timezone=Asia/Seoul
+```
+
