@@ -648,3 +648,39 @@ GET /api/admin/dashboard/posts/top?range=7d&size=10&timezone=Asia/Seoul
 GET /api/admin/dashboard/categories?range=30d&timezone=Asia/Seoul
 ```
 
+응답:
+
+```json
+{
+  "code": "SUCCESS",
+  "message": "OK",
+  "data": []
+}
+```
+
+### 10.4 Action items
+
+```http
+GET /api/admin/dashboard/action-items?timezone=Asia/Seoul
+```
+
+응답:
+
+```json
+{
+  "code": "SUCCESS",
+  "message": "OK",
+  "data": {
+    "unansweredComments": 0,
+    "uncategorizedPosts": 0,
+    "stalePopularPosts": 0
+  }
+}
+```
+
+## 11. 성능과 캐싱
+
+관리자 대시보드는 실시간 초단위 정확도가 필요하지 않다.
+
+권장:
+
