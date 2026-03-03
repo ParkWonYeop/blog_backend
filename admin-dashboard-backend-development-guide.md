@@ -684,3 +684,43 @@ GET /api/admin/dashboard/action-items?timezone=Asia/Seoul
 
 권장:
 
+- `/api/admin/dashboard` 응답은 30-60초 서버 캐싱 가능
+- 조회수 증가 write는 가볍게 처리
+- 일별 통계 upsert는 DB index를 반드시 둔다
+- traffic range가 90일이어도 row 수가 작으므로 부담이 낮다
+
+동시성:
+
+- 여러 요청이 동시에 같은 글을 조회할 수 있으므로 `(post_id, stat_date)` upsert는 atomic해야 한다.
+- MySQL이면 `INSERT ... ON DUPLICATE KEY UPDATE view_count = view_count + 1`
+- PostgreSQL이면 `INSERT ... ON CONFLICT ... DO UPDATE`
+
+예:
+
+```sql
+INSERT INTO post_view_daily_stats (post_id, stat_date, view_count)
+VALUES (:postId, :statDate, 1)
+ON DUPLICATE KEY UPDATE
+  view_count = view_count + 1,
+  updated_at = CURRENT_TIMESTAMP;
+```
+
+## 12. 보안과 개인정보
+
+- 관리자 대시보드 API는 public cache에 저장하지 않는다.
+- access token, refresh token, IP, User-Agent를 로그에 직접 남기지 않는다.
+- unique visitor를 도입하기 전에는 개인정보성 식별자를 저장하지 않는다.
+- IP 기반 unique 집계를 도입한다면 salt hash와 보관 기간을 명확히 정한다.
+- public API에는 오늘/주간/월간 조회수 집계를 추가하지 않는다.
+
+## 13. 백엔드 구현 순서
+
+### Phase 1: 일별 조회수 집계 기반
+
+1. `post_view_daily_stats` migration 추가
+2. 글 상세 조회 시 daily stats upsert 추가
+3. 기존 `Post.viewCount` 증가 로직 유지
+4. 인덱스와 unique key 확인
+5. 기존 글 상세 API 회귀 테스트
+
+### Phase 2: `/api/admin/dashboard` MVP
