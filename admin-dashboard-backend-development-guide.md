@@ -761,3 +761,42 @@ ON DUPLICATE KEY UPDATE
 
 대시보드 응답:
 
+- `range=7d`는 traffic 7개
+- `range=30d`는 traffic 30개
+- 조회 없는 날짜는 views 0
+- `todayViews`, `weekViews`, `monthViews`가 올바른 합계를 반환
+- `topPosts`가 range 조회수 기준으로 정렬
+
+조회수 집계:
+
+- 글 상세 조회 1회 후 해당 날짜 row 생성
+- 같은 글 같은 날짜 추가 조회 시 row 증가
+- 다른 날짜는 별도 row
+
+### 14.3 프론트 연동 확인
+
+프론트에서 호출할 URL:
+
+```http
+GET https://blogserver.wypark.me/api/admin/dashboard?range=30d&timezone=Asia/Seoul
+```
+
+확인:
+
+- 응답이 `ApiResponse<AdminDashboardResponse>` 구조와 일치
+- CORS, cookie, Authorization 헤더가 기존 admin API와 동일하게 동작
+- 프론트 `/admin`에서 오늘/7일/30일 조회수가 표시
+- 공개 `/`에서는 대시보드 집계가 표시되지 않음
+
+## 15. 완료 기준
+
+백엔드 MVP 완료 기준:
+
+- `post_view_daily_stats`가 운영 DB에 반영된다.
+- 글 상세 조회 시 일별 조회수가 누적된다.
+- 관리자만 `/api/admin/dashboard`를 조회할 수 있다.
+- `todayViews`, `weekViews`, `monthViews`, `traffic`, `topPosts`, `recentPosts`, `recentComments`, `categoryStats`, `actionItems`가 응답된다.
+- `range=7d`, `30d`, `90d`가 동작한다.
+- 프론트가 fallback 없이 실제 API 데이터를 표시할 수 있다.
+- 공개 API에는 운영 집계가 노출되지 않는다.
+
