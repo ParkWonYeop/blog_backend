@@ -724,3 +724,40 @@ ON DUPLICATE KEY UPDATE
 5. 기존 글 상세 API 회귀 테스트
 
 ### Phase 2: `/api/admin/dashboard` MVP
+
+1. `DashboardOverview` 계산
+2. `traffic` range points 계산
+3. `topPosts` 계산
+4. `recentPosts`, `recentComments`는 기존 repository/service 재사용
+5. `categoryStats` 계산
+6. `actionItems` 계산
+7. 관리자 권한 검사 적용
+
+### Phase 3: 고도화
+
+1. `risingPosts` 계산 추가
+2. `stalePopularPosts` 계산 추가
+3. 위젯별 캐싱 추가
+4. 필요하면 분리 엔드포인트 추가
+5. unique visitor 정책 검토
+
+## 14. 테스트 계획
+
+### 14.1 단위 테스트
+
+- `changeRate` 계산
+- range 날짜 계산
+- traffic 날짜 빈 구간 0 채우기
+- stale popular 기준
+- unanswered comment 기준
+
+### 14.2 통합 테스트
+
+관리자 권한:
+
+- 비로그인 요청은 401
+- 일반 회원 요청은 403
+- 관리자 요청은 200
+
+대시보드 응답:
+
