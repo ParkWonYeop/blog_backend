@@ -70,3 +70,41 @@ JAVA_HOME=/path/to/jdk-21 ./gradlew clean check
 
 ## Kotlin 코드 스타일
 
+- 와일드카드 import를 사용하지 않는다.
+- 생성자 주입을 사용하고 필드 주입을 사용하지 않는다.
+- `!!` 대신 `requireNotNull`, nullable 흐름, 명시적인 비즈니스 예외를 사용한다.
+- 함수와 클래스 이름으로 드러나는 내용을 장문의 주석으로 반복하지 않는다.
+- 주석은 제약의 이유, 호환성 배경, 비직관적인 선택을 설명할 때만 남긴다.
+- 범용 `Exception` catch는 외부 시스템 경계의 fail-safe 처리처럼 이유가 분명할 때만 사용하고 로그를 남긴다.
+- 시간에 의존하는 코드는 `LocalDate.now()`나 `Date()`를 직접 호출하기보다 주입된 `Clock`을 사용한다.
+- 설정은 흩어진 `@Value` 대신 `@ConfigurationProperties`로 묶는다.
+- 의미 있는 상수는 companion object 또는 전용 값 객체로 이름을 부여한다.
+- 한 파일이 여러 기능의 책임을 갖기 시작하면 mapper, selector, parser, port 등 응집된 단위로 분리한다.
+
+`.editorconfig`의 UTF-8, LF, 4칸 들여쓰기와 120자 줄 길이를 따른다.
+
+## Maia 엔진
+
+- `maia-engine`은 Spring 애플리케이션과 HTTP/JSON으로 통신하는 독립 프로세스로 유지한다.
+- Spring 쪽 요청·응답 계약은 `application` 포트에, `RestClient` 구현은 `infrastructure`에 둔다.
+- 엔진의 `/health`, `/maia/state`, `/maia/move` 계약을 변경하면 Kotlin 모델과 호출부를 함께 수정한다.
+- 모델명, 디바이스, 캐시 경로는 환경 변수로 주입하고 모델 파일을 저장소에 커밋하지 않는다.
+- Python 예외의 내부 경로나 모델 세부 정보를 API 사용자에게 그대로 노출하지 않는다.
+
+## 도메인과 JPA
+
+- 엔티티 상태는 public setter보다 의도가 드러나는 도메인 메서드로 변경한다.
+- Kotlin JPA `all-open`과 Hibernate 프록시 호환을 위해 엔티티 setter는 필요 시 `protected set`을 사용한다.
+- 양방향 연관관계는 한 메서드에서 양쪽을 함께 갱신한다.
+- `FetchType.LAZY`를 기본으로 유지하고, 필요한 조회만 fetch join·projection·batch 전략으로 최적화한다.
+- OSIV가 꺼져 있으므로 DTO 변환에 필요한 lazy 관계는 트랜잭션 안에서 읽어야 한다.
+- 영속화된 ID는 `requireNotNull(entity.id)`처럼 불변식을 명시한다.
+- 대량 갱신, 원자적 증가, 통계 쿼리처럼 JPA보다 SQL이 명확한 경우에만 JDBC를 사용한다.
+- QueryDSL 목록 조회는 엔티티 전체보다 필요한 필드의 read model projection을 우선한다.
+
+데이터베이스 구조를 바꾸면 기존 migration을 수정하지 말고 `src/main/resources/db/migration`에 새로운
+Flyway migration을 추가한다. PostgreSQL에서 먼저 성립하는 SQL을 작성하고 H2 호환 테스트가 필요한지
+별도로 판단한다. 운영 스키마에 대한 파괴적 DDL은 명시적인 승인 없이 추가하지 않는다.
+
+## 애플리케이션 서비스
+
