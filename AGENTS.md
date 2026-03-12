@@ -145,3 +145,42 @@ git diff --check
 
 배포·설정·의존성·패키지 구조에 영향을 주는 변경의 최종 검증:
 
+```bash
+./gradlew clean check bootJar
+docker compose config
+```
+
+테스트를 삭제하거나 assertion을 약화해 실패를 숨기지 않는다. 환경 문제로 실행하지 못한 검증은 완료로
+표현하지 말고 정확한 이유와 미검증 범위를 남긴다.
+
+## 설정과 운영 파일
+
+- `application.yml`: 공통 설정과 기본 프로필
+- `application-prod.yml`: 운영 데이터베이스, Redis, S3, 메일, JWT 설정
+- `application-test.yml`: H2와 외부 연결을 차단한 테스트 설정
+- `docker-compose.yml`: 로컬 PostgreSQL, Redis, MinIO, Maia 엔진, API 구성
+- `Dockerfile`: Java 21 multi-stage 이미지 빌드
+- `maia-engine/Dockerfile`: Python 3.11 Maia 엔진 이미지 빌드
+- `.env.example`: 커밋 가능한 환경 변수 예시
+
+설정 키를 바꾸면 Kotlin configuration properties, YAML, Compose, `.env.example`, README를 한 번에 갱신한다.
+운영 기본값에 개인 IP, 실제 Secret, 개인 장비 경로를 새로 추가하지 않는다.
+
+## 수정하지 말아야 할 파일
+
+- `build/` 및 생성된 QueryDSL Q 클래스
+- `.gradle/`, `.idea/`, 로컬 IDE 파일
+- `postgres_data/`, `minio_data/`
+- 실제 Secret이 들어간 `.env`
+- Gradle Wrapper 바이너리와 버전은 명시적인 업그레이드 요청이 있을 때만 변경한다.
+
+## 완료 기준
+
+작업은 다음 조건을 모두 만족할 때 완료된다.
+
+- 요청한 동작이 구현되고 기존 외부 계약이 의도치 않게 바뀌지 않았다.
+- 계층 의존성과 책임 배치가 이 문서의 규칙을 따른다.
+- 관련 테스트와 전체 테스트가 통과한다.
+- `git diff --check`가 깨끗하다.
+- 문서와 설정 예제가 실제 코드와 일치한다.
+- 미검증 항목, 마이그레이션 위험, 운영상 수동 단계가 숨김없이 보고된다.
