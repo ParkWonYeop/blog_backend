@@ -77,7 +77,7 @@ class SecurityConfig(
                 auth.requestMatchers("/api/auth/**").permitAll()
 
                 // 조회(Read) 작업은 비회원에게도 허용 (GET 메서드 한정)
-                auth.requestMatchers(HttpMethod.GET, "/api/posts/**", "/api/categories/**", "/api/tags/**").permitAll()
+                auth.requestMatchers(HttpMethod.GET, "/api/posts/**", "/api/categories/**", "/api/tags/**", "/api/chess-puzzles/**").permitAll()
                 auth.requestMatchers(HttpMethod.GET, "/api/profile").permitAll()
 
                 // 댓글 API: 비회원 작성/삭제도 지원하므로 전체 허용 (내부 로직에서 비밀번호 검증)
