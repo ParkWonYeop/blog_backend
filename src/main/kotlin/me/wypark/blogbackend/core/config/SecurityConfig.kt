@@ -1,15 +1,21 @@
 package me.wypark.blogbackend.core.config
 
+import com.fasterxml.jackson.databind.ObjectMapper
+import jakarta.servlet.http.HttpServletResponse
+import me.wypark.blogbackend.api.common.ApiResponse
 import me.wypark.blogbackend.core.config.jwt.JwtAuthenticationFilter
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.http.HttpMethod
+import org.springframework.http.HttpStatus
+import org.springframework.http.MediaType
 import org.springframework.security.config.annotation.web.builders.HttpSecurity
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity
 import org.springframework.security.config.http.SessionCreationPolicy
 import org.springframework.security.web.SecurityFilterChain
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter
 import org.springframework.web.filter.CorsFilter
+import java.nio.charset.StandardCharsets
 
 /**
  * [Spring Security 설정]
@@ -22,7 +28,8 @@ import org.springframework.web.filter.CorsFilter
 @EnableWebSecurity
 class SecurityConfig(
     private val corsFilter: CorsFilter,
-    private val jwtAuthenticationFilter: JwtAuthenticationFilter
+    private val jwtAuthenticationFilter: JwtAuthenticationFilter,
+    private val objectMapper: ObjectMapper
 ) {
 
     @Bean
@@ -43,6 +50,24 @@ class SecurityConfig(
             // 서버가 클라이언트의 상태(Session)를 보존하지 않음 -> 서버 확장성(Scale-out) 유리
             .sessionManagement {
                 it.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+            }
+            .exceptionHandling { exceptions ->
+                exceptions.authenticationEntryPoint { _, response, _ ->
+                    writeErrorResponse(
+                        response = response,
+                        status = HttpStatus.UNAUTHORIZED,
+                        code = "UNAUTHORIZED",
+                        message = "인증이 필요합니다."
+                    )
+                }
+                exceptions.accessDeniedHandler { _, response, _ ->
+                    writeErrorResponse(
+                        response = response,
+                        status = HttpStatus.FORBIDDEN,
+                        code = "FORBIDDEN",
+                        message = "관리자 권한이 필요합니다."
+                    )
+                }
             }
 
             // 4. URL별 접근 권한 관리 (인가)
@@ -69,5 +94,17 @@ class SecurityConfig(
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter::class.java)
 
         return http.build()
+    }
+
+    private fun writeErrorResponse(
+        response: HttpServletResponse,
+        status: HttpStatus,
+        code: String,
+        message: String
+    ) {
+        response.status = status.value()
+        response.contentType = MediaType.APPLICATION_JSON_VALUE
+        response.characterEncoding = StandardCharsets.UTF_8.name()
+        response.writer.write(objectMapper.writeValueAsString(ApiResponse.error(message, code)))
     }
 }

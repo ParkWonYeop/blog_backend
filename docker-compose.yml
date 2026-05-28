@@ -8,9 +8,10 @@ services:
       - "8080:8080"
     environment:
       # Database
-      - SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/blog_db
+      - SPRING_DATASOURCE_URL=db:5432/blog_db
       - SPRING_DATASOURCE_USERNAME=${DB_USER}
       - SPRING_DATASOURCE_PASSWORD=${DB_PASS}
+      - JWT_SECRET=${JWT_SECRET}
       # Redis
       - SPRING_DATA_REDIS_HOST=redis
       - SPRING_DATA_REDIS_PORT=6379

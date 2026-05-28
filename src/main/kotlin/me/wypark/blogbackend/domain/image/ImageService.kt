@@ -19,7 +19,8 @@ import java.util.*
 @Service
 class ImageService(
     private val s3Client: S3Client,
-    @Value("\${spring.cloud.aws.s3.endpoint:http://minio:9000}") private val endpoint: String
+    @Value("\${spring.cloud.aws.s3.endpoint:http://minio:9000}") private val endpoint: String,
+    @Value("\${blog.image.initialize-bucket:true}") private val initializeBucket: Boolean
 ) {
     private val bucketName = "blog-images"
 
@@ -29,7 +30,9 @@ class ImageService(
      * 애플리케이션 레벨에서 인프라(Bucket & Policy)를 자동 프로비저닝(Auto-Provisioning)합니다.
      */
     init {
-        createBucketIfNotExists()
+        if (initializeBucket) {
+            createBucketIfNotExists()
+        }
     }
 
     /**

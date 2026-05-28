@@ -15,6 +15,8 @@ import org.springframework.data.domain.Pageable
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import java.time.LocalDate
+import java.time.ZoneId
 
 /**
  * [게시글 비즈니스 로직]
@@ -33,7 +35,8 @@ class PostService(
     private val categoryRepository: CategoryRepository,
     private val memberRepository: MemberRepository,
     private val tagRepository: TagRepository,
-    private val imageService: ImageService
+    private val imageService: ImageService,
+    private val postViewDailyStatsJdbcRepository: PostViewDailyStatsJdbcRepository
 ) {
 
     /**
@@ -58,6 +61,7 @@ class PostService(
             ?: throw IllegalArgumentException("해당 게시글을 찾을 수 없습니다: $slug")
 
         post.increaseViewCount()
+        postViewDailyStatsJdbcRepository.incrementPostView(post.id!!, LocalDate.now(KOREA_ZONE_ID))
 
         // 인접 게시글 조회 (Prev/Next Navigation)
         // ID를 기준으로 정렬하여 바로 앞/뒤의 게시글을 1건씩 조회합니다.
@@ -248,5 +252,9 @@ class PostService(
     private fun collectCategoryNames(category: Category, names: MutableList<String>) {
         names.add(category.name)
         category.children.forEach { collectCategoryNames(it, names) }
+    }
+
+    companion object {
+        private val KOREA_ZONE_ID: ZoneId = ZoneId.of("Asia/Seoul")
     }
 }
