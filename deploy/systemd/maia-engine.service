@@ -13,6 +13,7 @@ Environment=MAIA_DEVICE=cpu
 Environment=MAIA_USE_AMP=false
 Environment=HF_HOME=/root/blog-backend/.cache/huggingface
 Environment=PYTHONUNBUFFERED=1
+Environment=PATH=/root/blog-backend/maia-engine-venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 ExecStart=/root/blog-backend/maia-engine-venv/bin/python -m uvicorn app.main:app --host 127.0.0.1 --port 8000
 Restart=always
 RestartSec=5

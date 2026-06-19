@@ -1,7 +1,10 @@
 import os
+import shutil
 import subprocess
+import sys
 import threading
 from datetime import datetime, timezone
+from pathlib import Path
 
 import chess
 import chess.engine
@@ -37,9 +40,22 @@ def model_alias(model: str) -> str:
     return f"maia3-{model}"
 
 
+def engine_executable() -> str:
+    executable_name = "maia3-uci.exe" if os.name == "nt" else "maia3-uci"
+    venv_executable = Path(sys.executable).with_name(executable_name)
+    if venv_executable.exists():
+        return str(venv_executable)
+
+    path_executable = shutil.which("maia3-uci")
+    if path_executable:
+        return path_executable
+
+    return "maia3-uci"
+
+
 def engine_command(model: str) -> list[str]:
     command = [
-        "maia3-uci",
+        engine_executable(),
         "--model",
         model_alias(model),
         "--use-uci-history",
