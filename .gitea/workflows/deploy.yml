@@ -112,6 +112,56 @@ jobs:
             exit 1
           fi
 
+          install_apt_package() {
+            package_name="$1"
+            if [ "$(id -u)" -eq 0 ]; then
+              DEBIAN_FRONTEND=noninteractive apt-get install -y "$package_name"
+            elif command -v sudo >/dev/null 2>&1; then
+              sudo DEBIAN_FRONTEND=noninteractive apt-get install -y "$package_name"
+            else
+              return 1
+            fi
+          }
+
+          ensure_python_venv() {
+            probe_dir="$(mktemp -d)"
+            if "$python_bin" -m venv "$probe_dir" >/dev/null 2>&1; then
+              rm -rf "$probe_dir"
+              return 0
+            fi
+            rm -rf "$probe_dir"
+
+            if ! command -v apt-get >/dev/null 2>&1; then
+              echo "Python venv support is missing, and apt-get is not available on the deploy server."
+              return 1
+            fi
+
+            echo "Python venv support is missing. Installing python venv package..."
+            if [ "$(id -u)" -eq 0 ]; then
+              DEBIAN_FRONTEND=noninteractive apt-get update
+            elif command -v sudo >/dev/null 2>&1; then
+              sudo DEBIAN_FRONTEND=noninteractive apt-get update
+            else
+              echo "Cannot install python venv package because deploy user is not root and sudo is unavailable."
+              return 1
+            fi
+
+            python_version="$("$python_bin" -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')"
+            for package_name in "python${python_version}-venv" "python3-venv"; do
+              if install_apt_package "$package_name"; then
+                probe_dir="$(mktemp -d)"
+                if "$python_bin" -m venv "$probe_dir" >/dev/null 2>&1; then
+                  rm -rf "$probe_dir"
+                  return 0
+                fi
+                rm -rf "$probe_dir"
+              fi
+            done
+
+            echo "failed to install a working python venv package."
+            return 1
+          }
+
           if ! command -v git >/dev/null 2>&1; then
             echo "git is required on the deploy server because maia3 is installed from GitHub"
             exit 1
@@ -137,6 +187,12 @@ jobs:
           }
 
           if [ ! -d "$MAIA_VENV_DIR" ]; then
+            if ! ensure_python_venv; then
+              rollback_maia
+              echo "failed to prepare Python venv support on the deploy server."
+              exit 1
+            fi
+
             if ! "$python_bin" -m venv "$MAIA_VENV_DIR"; then
               rollback_maia
               echo "failed to create Python venv. Install python3-venv on the deploy server."

@@ -57,12 +57,13 @@ Gitea repository secrets에 다음 값을 등록한다.
 - Java 21
 - systemd
 - Python 3.11 또는 Python 3
-- Python venv 모듈(`python3-venv` 계열 패키지)
+- Python venv 모듈(`python3-venv` 계열 패키지). 없으면 배포 스크립트가 `apt-get` 또는 `sudo apt-get`으로 자동 설치를 시도한다.
 - `git`
 - `sha256sum`
 - `tar`
 - 외부 네트워크 접근. `requirements.txt`가 `git+https://github.com/CSSLab/maia3.git`를 설치한다.
 - `DEPLOY_USER`가 `/root/blog-backend`에 쓸 수 있고 `/etc/systemd/system`에 서비스 파일을 설치하며 `systemctl`을 실행할 수 있어야 한다.
+- Python venv 패키지가 없는 서버에서는 `DEPLOY_USER`가 `apt-get install`을 실행할 수 있어야 한다. root 접속이 아니면 passwordless sudo 권한이 필요하다.
 
 첫 설치 또는 Maia3 의존성 변경 시 Python 패키지 설치와 모델 캐시 준비 때문에 배포가 오래 걸릴 수 있다. 모델 캐시는 `/root/blog-backend/.cache/huggingface`에 저장된다.
 
