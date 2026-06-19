@@ -10,7 +10,6 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication
 import org.springframework.security.core.GrantedAuthority
 import org.springframework.security.core.authority.SimpleGrantedAuthority
-import org.springframework.security.core.userdetails.User
 import org.springframework.stereotype.Component
 import java.util.*
 import javax.crypto.SecretKey
@@ -90,7 +89,19 @@ class JwtProvider(
                 .map { SimpleGrantedAuthority(it) }
 
         // UserDetails 객체를 생성하여 Authentication에 담음 (비밀번호는 불필요하므로 빈 문자열)
-        val principal = User(claims.subject, "", authorities)
+        val memberId = when (val claim = claims["memberId"]) {
+            is Number -> claim.toLong()
+            is String -> claim.toLong()
+            else -> throw RuntimeException("memberId claim is missing.")
+        }
+        val nickname = claims["nickname"]?.toString() ?: claims.subject
+        val principal = CustomUserDetails(
+            memberId = memberId,
+            nickname = nickname,
+            username = claims.subject,
+            password = "",
+            authorities = authorities
+        )
         return UsernamePasswordAuthenticationToken(principal, "", authorities)
     }
 
