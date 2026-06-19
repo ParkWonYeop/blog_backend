@@ -157,6 +157,143 @@ class ChessGameServiceTest {
     }
 
     @Test
+    fun `resigns an in-progress game as a player loss`() {
+        store.save(
+            ChessGameSession(
+                gameId = "game-1",
+                memberId = MEMBER_ID,
+                rating = 1500,
+                playerColor = ChessSide.WHITE,
+                model = "5m",
+                temperature = 0.8,
+                topP = 0.95,
+                fen = FakeMaiaEngine.START_FEN,
+                turn = ChessSide.WHITE,
+                moves = listOf("e2e4", "c7c5"),
+                status = "IN_PROGRESS",
+                result = null,
+                pgn = "[Event \"Maia3\"]\n[Result \"*\"]\n\n1. e4 c5 *",
+                createdAt = Instant.parse("2026-06-19T00:00:00Z"),
+                updatedAt = Instant.parse("2026-06-19T00:00:00Z")
+            )
+        )
+
+        val response = service.resign(MEMBER_ID, "game-1")
+
+        assertEquals("RESIGNED", response.status)
+        assertEquals("0-1", response.result)
+        assertEquals("LOSS", response.outcome)
+        assertEquals(true, response.pgn.contains("[Result \"0-1\"]"))
+        assertEquals(true, response.pgn.trimEnd().endsWith("0-1"))
+        assertEquals("LOSS", historyStore.savedSessions.last().outcome().name)
+    }
+
+    @Test
+    fun `undo removes the last player move and Maia reply`() {
+        store.save(
+            ChessGameSession(
+                gameId = "game-1",
+                memberId = MEMBER_ID,
+                rating = 1500,
+                playerColor = ChessSide.WHITE,
+                model = "5m",
+                temperature = 0.8,
+                topP = 0.95,
+                fen = "rnbqkb1r/pp1ppppp/5n2/2p5/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 2 3",
+                turn = ChessSide.WHITE,
+                moves = listOf("e2e4", "c7c5", "g1f3", "g8f6"),
+                status = "IN_PROGRESS",
+                result = null,
+                pgn = "1. e4 c5 2. Nf3 Nf6 *",
+                createdAt = Instant.parse("2026-06-19T00:00:00Z"),
+                updatedAt = Instant.parse("2026-06-19T00:00:00Z")
+            )
+        )
+        engine.stateResponses.add(
+            MaiaStateResponse(
+                fen = "rnbqkbnr/pp1ppppp/8/2p5/4P3/8/PPPP1PPP/RNBQKBNR w KQkq c6 0 2",
+                turn = "white",
+                status = "IN_PROGRESS",
+                result = null,
+                pgn = "1. e4 c5 *"
+            )
+        )
+
+        val response = service.undoMove(MEMBER_ID, "game-1")
+
+        assertEquals(listOf("e2e4", "c7c5"), response.moves)
+        assertEquals("white", response.turn)
+        assertEquals("1. e4 c5 *", response.pgn)
+        assertEquals(listOf("e2e4", "c7c5"), engine.stateRequests.last().moves)
+        assertEquals("IN_PROGRESS", historyStore.savedSessions.last().outcome().name)
+    }
+
+    @Test
+    fun `undo black game keeps Maia opening move`() {
+        store.save(
+            ChessGameSession(
+                gameId = "game-1",
+                memberId = MEMBER_ID,
+                rating = 1500,
+                playerColor = ChessSide.BLACK,
+                model = "5m",
+                temperature = 0.8,
+                topP = 0.95,
+                fen = "rnbqkbnr/pppp1ppp/8/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R b KQkq - 1 2",
+                turn = ChessSide.BLACK,
+                moves = listOf("e2e4", "e7e5", "g1f3"),
+                status = "IN_PROGRESS",
+                result = null,
+                pgn = "1. e4 e5 2. Nf3 *",
+                createdAt = Instant.parse("2026-06-19T00:00:00Z"),
+                updatedAt = Instant.parse("2026-06-19T00:00:00Z")
+            )
+        )
+        engine.stateResponses.add(
+            MaiaStateResponse(
+                fen = "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1",
+                turn = "black",
+                status = "IN_PROGRESS",
+                result = null,
+                pgn = "1. e4 *"
+            )
+        )
+
+        val response = service.undoMove(MEMBER_ID, "game-1")
+
+        assertEquals(listOf("e2e4"), response.moves)
+        assertEquals("black", response.turn)
+        assertEquals(listOf("e2e4"), engine.stateRequests.last().moves)
+    }
+
+    @Test
+    fun `rejects undo when player has not moved yet`() {
+        store.save(
+            ChessGameSession(
+                gameId = "game-1",
+                memberId = MEMBER_ID,
+                rating = 1500,
+                playerColor = ChessSide.BLACK,
+                model = "5m",
+                temperature = 0.8,
+                topP = 0.95,
+                fen = FakeMaiaEngine.START_FEN,
+                turn = ChessSide.BLACK,
+                moves = listOf("e2e4"),
+                status = "IN_PROGRESS",
+                result = null,
+                pgn = "1. e4 *",
+                createdAt = Instant.parse("2026-06-19T00:00:00Z"),
+                updatedAt = Instant.parse("2026-06-19T00:00:00Z")
+            )
+        )
+
+        assertFailsWith<IllegalArgumentException> {
+            service.undoMove(MEMBER_ID, "game-1")
+        }
+    }
+
+    @Test
     fun `rejects move when it is not player's turn`() {
         store.save(
             ChessGameSession(
@@ -253,10 +390,16 @@ private class FakeChessGameHistoryStore : ChessGameHistoryStore {
 }
 
 private class FakeMaiaEngine : MaiaEngine {
+    val stateResponses = ArrayDeque<MaiaStateResponse>()
+    val stateRequests = mutableListOf<MaiaStateRequest>()
     val playResponses = ArrayDeque<MaiaPlayResponse>()
     val playRequests = mutableListOf<MaiaPlayRequest>()
 
     override fun getState(request: MaiaStateRequest): MaiaStateResponse {
+        stateRequests.add(request)
+        if (stateResponses.isNotEmpty()) {
+            return stateResponses.removeFirst()
+        }
         return MaiaStateResponse(
             fen = START_FEN,
             turn = "white",

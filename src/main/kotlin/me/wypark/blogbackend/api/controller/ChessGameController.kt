@@ -79,4 +79,20 @@ class ChessGameController(
     ): ResponseEntity<ApiResponse<ChessGameResponse>> {
         return ResponseEntity.ok(ApiResponse.success(chessGameService.playMove(userDetails.memberId, gameId, request)))
     }
+
+    @PostMapping("/{gameId}/resign")
+    fun resign(
+        @AuthenticationPrincipal userDetails: CustomUserDetails,
+        @PathVariable gameId: String
+    ): ResponseEntity<ApiResponse<ChessGameResponse>> {
+        return ResponseEntity.ok(ApiResponse.success(chessGameService.resign(userDetails.memberId, gameId)))
+    }
+
+    @PostMapping("/{gameId}/undo")
+    fun undoMove(
+        @AuthenticationPrincipal userDetails: CustomUserDetails,
+        @PathVariable gameId: String
+    ): ResponseEntity<ApiResponse<ChessGameResponse>> {
+        return ResponseEntity.ok(ApiResponse.success(chessGameService.undoMove(userDetails.memberId, gameId)))
+    }
 }

@@ -107,6 +107,55 @@ class ChessGameService(
         return ChessGameResponse.from(updated, maiaResponse.move)
     }
 
+    @Transactional
+    fun resign(memberId: Long, gameId: String): ChessGameResponse {
+        val session = getPlayableSession(memberId, gameId)
+        require(session.status == "IN_PROGRESS") { "This chess game is already finished." }
+
+        val result = session.playerColor.resignationResult()
+        val updated = session.copy(
+            status = "RESIGNED",
+            result = result,
+            pgn = session.pgn.withPgnResult(result),
+            updatedAt = Instant.now(clock)
+        )
+
+        saveSession(updated)
+        return ChessGameResponse.from(updated)
+    }
+
+    @Transactional
+    fun undoMove(memberId: Long, gameId: String): ChessGameResponse {
+        val session = getPlayableSession(memberId, gameId)
+        require(session.status != "RESIGNED") { "Resigned games cannot be undone." }
+
+        val lastPlayerMoveIndex = session.moves.indices
+            .lastOrNull { sideForMoveIndex(it) == session.playerColor }
+            ?: throw IllegalArgumentException("There is no player move to undo.")
+        val revertedMoves = session.moves.take(lastPlayerMoveIndex)
+        val labels = playerLabels(session.playerColor, session.rating, session.model)
+        val state = maiaEngine.getState(
+            MaiaStateRequest(
+                moves = revertedMoves,
+                white = labels.white,
+                black = labels.black
+            )
+        )
+
+        val updated = session.copy(
+            fen = state.fen,
+            turn = ChessSide.from(state.turn),
+            moves = revertedMoves,
+            status = state.status,
+            result = state.result,
+            pgn = state.pgn,
+            updatedAt = Instant.now(clock)
+        )
+
+        saveSession(updated)
+        return ChessGameResponse.from(updated)
+    }
+
     private fun getPlayableSession(memberId: Long, gameId: String): ChessGameSession {
         val session = chessGameStore.findById(gameId)
         if (session != null) {
@@ -126,6 +175,28 @@ class ChessGameService(
 
     private fun requireOwnedBy(session: ChessGameSession, memberId: Long) {
         require(session.memberId == memberId) { "Chess game not found." }
+    }
+
+    private fun sideForMoveIndex(index: Int): ChessSide {
+        return if (index % 2 == 0) ChessSide.WHITE else ChessSide.BLACK
+    }
+
+    private fun ChessSide.resignationResult(): String {
+        return if (this == ChessSide.WHITE) "0-1" else "1-0"
+    }
+
+    private fun String.withPgnResult(result: String): String {
+        val withHeader = if (contains(Regex("""\[Result\s+"[^"]*"]"""))) {
+            replace(Regex("""\[Result\s+"[^"]*"]"""), """[Result "$result"]""")
+        } else {
+            """[Result "$result"]""" + "\n" + this
+        }
+        val trailingResult = Regex("""(1-0|0-1|1/2-1/2|\*)\s*$""")
+        return if (trailingResult.containsMatchIn(withHeader)) {
+            trailingResult.replace(withHeader, result)
+        } else {
+            "${withHeader.trimEnd()} $result"
+        }
     }
 
     private fun playerLabels(playerColor: ChessSide, rating: Int, model: String): PlayerLabels {
