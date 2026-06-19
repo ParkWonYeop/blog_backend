@@ -1,6 +1,7 @@
 package me.wypark.blogbackend.domain.chess
 
 import org.slf4j.LoggerFactory
+import org.springframework.http.MediaType
 import org.springframework.stereotype.Component
 import org.springframework.web.client.RestClient
 import org.springframework.web.client.RestClientException
@@ -26,6 +27,8 @@ class MaiaEngineClient(
             return maiaRestClient
                 .post()
                 .uri(path)
+                .contentType(MediaType.APPLICATION_JSON)
+                .accept(MediaType.APPLICATION_JSON)
                 .body(request)
                 .retrieve()
                 .body(responseType)
