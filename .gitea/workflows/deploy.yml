@@ -19,8 +19,16 @@ jobs:
           distribution: temurin
           java-version: "21"
 
-      - name: Run tests
+      - name: Run backend tests
         run: ./gradlew test --no-daemon
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Compile Maia engine bridge
+        run: python -m py_compile maia-engine/app/main.py
 
   deploy:
     runs-on: ubuntu-latest
@@ -38,7 +46,16 @@ jobs:
       - name: Build boot jar
         run: ./gradlew clean bootJar -x test --no-daemon
 
-      - name: Deploy jar over SSH
+      - name: Package Maia engine
+        run: |
+          set -euo pipefail
+          tar \
+            --exclude='__pycache__' \
+            --exclude='*.pyc' \
+            -czf maia-engine.tar.gz \
+            maia-engine
+
+      - name: Deploy backend and Maia engine over SSH
         env:
           DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
           DEPLOY_PORT: ${{ secrets.DEPLOY_PORT }}
@@ -50,8 +67,11 @@ jobs:
           port="${DEPLOY_PORT:-22}"
           remote_dir="/root/blog-backend"
           service_name="blog-api.service"
+          maia_service_name="maia-engine.service"
           jar_name="blog-backend.jar"
           remote_tmp="/tmp/${jar_name}.new"
+          maia_archive_tmp="/tmp/maia-engine.tar.gz.new"
+          maia_service_tmp="/tmp/maia-engine.service.new"
 
           jar_file="$(find build/libs -maxdepth 1 -type f -name '*.jar' ! -name '*plain.jar' | sort | head -n 1)"
           if [ -z "$jar_file" ]; then
@@ -65,12 +85,125 @@ jobs:
           ssh-keyscan -p "$port" "$DEPLOY_HOST" >> ~/.ssh/known_hosts
 
           scp -i ~/.ssh/blog-backend-deploy -P "$port" "$jar_file" "$DEPLOY_USER@$DEPLOY_HOST:$remote_tmp"
+          scp -i ~/.ssh/blog-backend-deploy -P "$port" maia-engine.tar.gz "$DEPLOY_USER@$DEPLOY_HOST:$maia_archive_tmp"
+          scp -i ~/.ssh/blog-backend-deploy -P "$port" deploy/systemd/maia-engine.service "$DEPLOY_USER@$DEPLOY_HOST:$maia_service_tmp"
 
           ssh -i ~/.ssh/blog-backend-deploy -p "$port" "$DEPLOY_USER@$DEPLOY_HOST" \
-            "REMOTE_DIR='$remote_dir' SERVICE_NAME='$service_name' JAR_NAME='$jar_name' REMOTE_TMP='$remote_tmp' bash -s" <<'EOF'
+            "REMOTE_DIR='$remote_dir' SERVICE_NAME='$service_name' MAIA_SERVICE_NAME='$maia_service_name' JAR_NAME='$jar_name' REMOTE_TMP='$remote_tmp' MAIA_ARCHIVE_TMP='$maia_archive_tmp' MAIA_SERVICE_TMP='$maia_service_tmp' bash -s" <<'EOF'
           set -euo pipefail
 
           mkdir -p "$REMOTE_DIR"
+
+          MAIA_DIR="$REMOTE_DIR/maia-engine"
+          MAIA_NEW_DIR="$REMOTE_DIR/maia-engine.new"
+          MAIA_VENV_DIR="$REMOTE_DIR/maia-engine-venv"
+          MAIA_CACHE_DIR="$REMOTE_DIR/.cache/huggingface"
+          MAIA_REQUIREMENTS_HASH_FILE="$MAIA_VENV_DIR/.requirements.sha256"
+
+          python_bin=""
+          if command -v python3.11 >/dev/null 2>&1; then
+            python_bin="$(command -v python3.11)"
+          elif command -v python3 >/dev/null 2>&1; then
+            python_bin="$(command -v python3)"
+          fi
+
+          if [ -z "$python_bin" ]; then
+            echo "python3.11 or python3 is required on the deploy server"
+            exit 1
+          fi
+
+          if ! command -v git >/dev/null 2>&1; then
+            echo "git is required on the deploy server because maia3 is installed from GitHub"
+            exit 1
+          fi
+
+          rm -rf "$MAIA_NEW_DIR"
+          mkdir -p "$MAIA_NEW_DIR" "$MAIA_CACHE_DIR"
+          tar -xzf "$MAIA_ARCHIVE_TMP" -C "$MAIA_NEW_DIR" --strip-components=1
+
+          maia_backup_path=""
+          if [ -d "$MAIA_DIR" ]; then
+            maia_backup_path="$MAIA_DIR.$(date +%Y%m%d%H%M%S).bak"
+            mv "$MAIA_DIR" "$maia_backup_path"
+          fi
+          mv "$MAIA_NEW_DIR" "$MAIA_DIR"
+
+          rollback_maia() {
+            if [ -n "$maia_backup_path" ] && [ -d "$maia_backup_path" ]; then
+              rm -rf "$MAIA_DIR"
+              mv "$maia_backup_path" "$MAIA_DIR"
+              systemctl restart "$MAIA_SERVICE_NAME" || true
+            fi
+          }
+
+          if [ ! -d "$MAIA_VENV_DIR" ]; then
+            if ! "$python_bin" -m venv "$MAIA_VENV_DIR"; then
+              rollback_maia
+              echo "failed to create Python venv. Install python3-venv on the deploy server."
+              exit 1
+            fi
+          fi
+
+          if ! "$MAIA_VENV_DIR/bin/python" -m pip install --upgrade pip; then
+            rollback_maia
+            exit 1
+          fi
+          requirements_hash="$(sha256sum "$MAIA_DIR/requirements.txt" | awk '{print $1}')"
+          saved_requirements_hash=""
+          if [ -f "$MAIA_REQUIREMENTS_HASH_FILE" ]; then
+            saved_requirements_hash="$(cat "$MAIA_REQUIREMENTS_HASH_FILE")"
+          fi
+
+          if [ "$requirements_hash" != "$saved_requirements_hash" ]; then
+            if ! "$MAIA_VENV_DIR/bin/python" -m pip install -r "$MAIA_DIR/requirements.txt"; then
+              rollback_maia
+              exit 1
+            fi
+            printf '%s\n' "$requirements_hash" > "$MAIA_REQUIREMENTS_HASH_FILE"
+          fi
+
+          if ! "$MAIA_VENV_DIR/bin/python" -m py_compile "$MAIA_DIR/app/main.py"; then
+            rollback_maia
+            exit 1
+          fi
+
+          cp "$MAIA_SERVICE_TMP" "/etc/systemd/system/$MAIA_SERVICE_NAME"
+          chmod 0644 "/etc/systemd/system/$MAIA_SERVICE_NAME"
+          systemctl daemon-reload
+          systemctl enable "$MAIA_SERVICE_NAME"
+
+          if ! systemctl restart "$MAIA_SERVICE_NAME"; then
+            rollback_maia
+            journalctl -u "$MAIA_SERVICE_NAME" -n 120 --no-pager
+            exit 1
+          fi
+
+          sleep 5
+
+          if ! systemctl is-active --quiet "$MAIA_SERVICE_NAME"; then
+            rollback_maia
+            journalctl -u "$MAIA_SERVICE_NAME" -n 120 --no-pager
+            exit 1
+          fi
+
+          if command -v curl >/dev/null 2>&1; then
+            if ! curl -fsS http://127.0.0.1:8000/health >/dev/null; then
+              rollback_maia
+              journalctl -u "$MAIA_SERVICE_NAME" -n 120 --no-pager
+              exit 1
+            fi
+          else
+            if ! "$python_bin" -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=5).read()"; then
+              rollback_maia
+              journalctl -u "$MAIA_SERVICE_NAME" -n 120 --no-pager
+              exit 1
+            fi
+          fi
+
+          if [ -n "$maia_backup_path" ]; then
+            rm -rf "$maia_backup_path"
+          fi
+
           cd "$REMOTE_DIR"
 
           backup_path=""
@@ -83,7 +216,7 @@ jobs:
           chown root:root "$JAR_NAME"
           chmod 0644 "$JAR_NAME"
 
-          rollback() {
+          rollback_backend() {
             if [ -n "$backup_path" ] && [ -f "$backup_path" ]; then
               cp "$backup_path" "$JAR_NAME"
               systemctl restart "$SERVICE_NAME" || true
@@ -91,7 +224,7 @@ jobs:
           }
 
           if ! systemctl restart "$SERVICE_NAME"; then
-            rollback
+            rollback_backend
             journalctl -u "$SERVICE_NAME" -n 120 --no-pager
             exit 1
           fi
@@ -99,10 +232,11 @@ jobs:
           sleep 8
 
           if ! systemctl is-active --quiet "$SERVICE_NAME"; then
-            rollback
+            rollback_backend
             journalctl -u "$SERVICE_NAME" -n 120 --no-pager
             exit 1
           fi
 
+          systemctl is-active "$MAIA_SERVICE_NAME"
           systemctl is-active "$SERVICE_NAME"
           EOF

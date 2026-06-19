@@ -3,3 +3,7 @@ spring:
     name: blog-api
   profiles:
     default: prod
+
+maia:
+  engine-url: ${MAIA_ENGINE_URL:http://localhost:8000}
+  game-session-ttl: ${MAIA_GAME_SESSION_TTL:PT6H}

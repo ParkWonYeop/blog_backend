@@ -30,6 +30,8 @@ class CorsConfig {
         // 2. 신뢰할 수 있는 출처(Origin) 명시
         // 로컬 개발 환경과 배포 환경(Production)의 도메인을 각각 등록합니다.
         config.addAllowedOrigin("https://blog.wypark.me")
+        config.addAllowedOrigin("http://localhost:3000")
+        config.addAllowedOrigin("http://localhost:5173")
         // config.addAllowedOrigin("http://localhost:3000") // 로컬 테스트 시 주석 해제
 
         // 3. 허용할 HTTP 메서드 및 헤더

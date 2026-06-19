@@ -1,5 +1,6 @@
 HELP.md
 .gradle
+.gradle-user-home/
 .env
 build/
 !gradle/wrapper/gradle-wrapper.jar
@@ -39,6 +40,10 @@ out/
 
 ### Kotlin ###
 .kotlin
+
+### Python ###
+__pycache__/
+*.py[cod]
 
 ### docker ###
 postgres_data

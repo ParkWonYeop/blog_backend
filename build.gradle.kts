@@ -80,3 +80,52 @@ allOpen {
 tasks.withType<Test> {
     useJUnitPlatform()
 }
+
+val compileKotlinTask = tasks.named("compileKotlin")
+val tempBuildDir = providers.provider {
+    file(System.getenv("BLOG_BACKEND_ASCII_BUILD_DIR") ?: "${System.getenv("TEMP") ?: layout.buildDirectory.get().asFile.absolutePath}/blog-backend-build")
+}
+val javacKotlinClassesDir = providers.provider {
+    tempBuildDir.get().resolve("kotlin-main-classes")
+}
+
+val syncKotlinClassesForJavac = tasks.register<Sync>("syncKotlinClassesForJavac") {
+    dependsOn(compileKotlinTask)
+    from(compileKotlinTask.map { it.outputs.files })
+    into(javacKotlinClassesDir)
+}
+
+tasks.named<JavaCompile>("compileJava") {
+    dependsOn(syncKotlinClassesForJavac)
+    classpath = files(javacKotlinClassesDir) + configurations.compileClasspath.get()
+    options.isIncremental = false
+}
+
+val mainRuntimeClassesDir = providers.provider {
+    tempBuildDir.get().resolve("main-runtime-classes")
+}
+val testRuntimeClassesDir = providers.provider {
+    tempBuildDir.get().resolve("test-runtime-classes")
+}
+
+val syncMainClassesForTestRuntime = tasks.register<Sync>("syncMainClassesForTestRuntime") {
+    dependsOn(tasks.named("classes"))
+    from(layout.buildDirectory.dir("classes/kotlin/main"))
+    from(layout.buildDirectory.dir("classes/java/main"))
+    from(layout.buildDirectory.dir("resources/main"))
+    into(mainRuntimeClassesDir)
+}
+
+val syncTestClassesForTestRuntime = tasks.register<Sync>("syncTestClassesForTestRuntime") {
+    dependsOn(tasks.named("testClasses"))
+    from(layout.buildDirectory.dir("classes/kotlin/test"))
+    from(layout.buildDirectory.dir("classes/java/test"))
+    from(layout.buildDirectory.dir("resources/test"))
+    into(testRuntimeClassesDir)
+}
+
+tasks.withType<Test> {
+    dependsOn(syncMainClassesForTestRuntime, syncTestClassesForTestRuntime)
+    testClassesDirs = files(testRuntimeClassesDir)
+    classpath = files(testRuntimeClassesDir, mainRuntimeClassesDir) + classpath
+}

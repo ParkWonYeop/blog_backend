@@ -12,6 +12,7 @@ services:
       - SPRING_DATASOURCE_USERNAME=${DB_USER}
       - SPRING_DATASOURCE_PASSWORD=${DB_PASS}
       - JWT_SECRET=${JWT_SECRET}
+      - MAIA_ENGINE_URL=http://maia-engine:8000
       # Redis
       - SPRING_DATA_REDIS_HOST=redis
       - SPRING_DATA_REDIS_PORT=6379
@@ -37,10 +38,31 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      maia-engine:
+        condition: service_healthy
     networks:
       - blog-net
 
   # 2. 데이터베이스 (PostgreSQL)
+  maia-engine:
+    build: ./maia-engine
+    container_name: maia-engine
+    restart: always
+    environment:
+      - MAIA_MODEL=maia3-5m
+      - MAIA_DEVICE=cpu
+      - MAIA_USE_AMP=false
+      - HF_HOME=/models/huggingface
+    volumes:
+      - maia_model_cache:/models
+    healthcheck:
+      test: [ "CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health', timeout=2).read()" ]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    networks:
+      - blog-net
+
   db:
     image: postgres:17-alpine
     container_name: blog-db
@@ -91,3 +113,6 @@ services:
 networks:
   blog-net:
     driver: bridge
+
+volumes:
+  maia_model_cache:
