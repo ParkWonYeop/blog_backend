@@ -25,7 +25,7 @@ data class ChessGameCreateRequest(
         regexp = "^(3m|5m|23m|79m)$",
         message = "model은 3m, 5m, 23m, 79m 중 하나여야 합니다."
     )
-    val model: String = "5m",
+    val model: String = "23m",
 
     @field:DecimalMin(value = "0.0", message = "temperature는 0.0 이상이어야 합니다.")
     @field:DecimalMax(value = "2.0", message = "temperature는 2.0 이하여야 합니다.")

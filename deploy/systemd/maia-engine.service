@@ -8,7 +8,7 @@ Type=simple
 User=root
 Group=root
 WorkingDirectory=/root/blog-backend/maia-engine
-Environment=MAIA_MODEL=maia3-5m
+Environment=MAIA_MODEL=maia3-23m
 Environment=MAIA_DEVICE=cpu
 Environment=MAIA_USE_AMP=false
 Environment=HF_HOME=/root/blog-backend/.cache/huggingface

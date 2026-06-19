@@ -13,7 +13,7 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 
 
-DEFAULT_MODEL = os.getenv("MAIA_MODEL", "5m").removeprefix("maia3-")
+DEFAULT_MODEL = os.getenv("MAIA_MODEL", "23m").removeprefix("maia3-")
 DEFAULT_DEVICE = os.getenv("MAIA_DEVICE", "cpu")
 DEFAULT_USE_AMP = os.getenv("MAIA_USE_AMP", "false").lower() == "true"
 

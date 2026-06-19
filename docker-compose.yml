@@ -49,7 +49,7 @@ services:
     container_name: maia-engine
     restart: always
     environment:
-      - MAIA_MODEL=maia3-5m
+      - MAIA_MODEL=maia3-23m
       - MAIA_DEVICE=cpu
       - MAIA_USE_AMP=false
       - HF_HOME=/models/huggingface
