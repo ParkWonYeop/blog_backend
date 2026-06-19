@@ -25,11 +25,12 @@
 6. jar, Maia 엔진 tar, `deploy/systemd/maia-engine.service`를 SSH/SCP로 서버에 업로드
 7. 서버에서 Maia 엔진 코드를 `/root/blog-backend/maia-engine`으로 교체
 8. `/root/blog-backend/maia-engine-venv`를 생성하거나 재사용
-9. `requirements.txt` 해시가 바뀌었으면 Python 의존성 재설치
-10. `maia-engine.service` 설치, `systemctl daemon-reload`, enable, restart
-11. `http://127.0.0.1:8000/health` 헬스체크
-12. Spring Boot jar를 `/root/blog-backend/blog-backend.jar`로 교체
-13. `blog-api.service` 재시작 후 active 상태 확인
+9. venv가 깨져 있거나 pip가 없으면 삭제 후 재생성
+10. `requirements.txt` 해시가 바뀌었으면 Python 의존성 재설치
+11. `maia-engine.service` 설치, `systemctl daemon-reload`, enable, restart
+12. `http://127.0.0.1:8000/health` 헬스체크
+13. Spring Boot jar를 `/root/blog-backend/blog-backend.jar`로 교체
+14. `blog-api.service` 재시작 후 active 상태 확인
 
 Maia 엔진 배포 실패 시 이전 Maia 코드 디렉터리로 롤백을 시도한다. 백엔드 jar 재시작 실패 시 직전 jar 백업으로 롤백을 시도한다.
 

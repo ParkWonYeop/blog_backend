@@ -182,20 +182,32 @@ jobs:
             if [ -n "$maia_backup_path" ] && [ -d "$maia_backup_path" ]; then
               rm -rf "$MAIA_DIR"
               mv "$maia_backup_path" "$MAIA_DIR"
-              systemctl restart "$MAIA_SERVICE_NAME" || true
+              if systemctl cat "$MAIA_SERVICE_NAME" >/dev/null 2>&1; then
+                systemctl restart "$MAIA_SERVICE_NAME" || true
+              fi
             fi
           }
 
-          if [ ! -d "$MAIA_VENV_DIR" ]; then
-            if ! ensure_python_venv; then
-              rollback_maia
-              echo "failed to prepare Python venv support on the deploy server."
-              exit 1
-            fi
+          if ! ensure_python_venv; then
+            rollback_maia
+            echo "failed to prepare Python venv support on the deploy server."
+            exit 1
+          fi
 
+          if [ ! -x "$MAIA_VENV_DIR/bin/python" ] || ! "$MAIA_VENV_DIR/bin/python" -m pip --version >/dev/null 2>&1; then
+            echo "Creating Maia Python venv..."
+            rm -rf "$MAIA_VENV_DIR"
             if ! "$python_bin" -m venv "$MAIA_VENV_DIR"; then
               rollback_maia
               echo "failed to create Python venv. Install python3-venv on the deploy server."
+              exit 1
+            fi
+          fi
+
+          if ! "$MAIA_VENV_DIR/bin/python" -m pip --version >/dev/null 2>&1; then
+            if ! "$MAIA_VENV_DIR/bin/python" -m ensurepip --upgrade; then
+              rollback_maia
+              echo "failed to bootstrap pip in the Maia Python venv."
               exit 1
             fi
           fi
