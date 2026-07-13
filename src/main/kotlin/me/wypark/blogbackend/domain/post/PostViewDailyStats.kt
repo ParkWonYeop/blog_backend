@@ -1,6 +1,16 @@
 package me.wypark.blogbackend.domain.post
 
-import jakarta.persistence.*
+import jakarta.persistence.Column
+import jakarta.persistence.Entity
+import jakarta.persistence.FetchType
+import jakarta.persistence.GeneratedValue
+import jakarta.persistence.GenerationType
+import jakarta.persistence.Id
+import jakarta.persistence.Index
+import jakarta.persistence.JoinColumn
+import jakarta.persistence.ManyToOne
+import jakarta.persistence.Table
+import jakarta.persistence.UniqueConstraint
 import me.wypark.blogbackend.domain.common.BaseTimeEntity
 import java.time.LocalDate
 
@@ -26,9 +36,12 @@ class PostViewDailyStats(
     @Column(name = "stat_date", nullable = false)
     val statDate: LocalDate,
 
-    @Column(name = "view_count", nullable = false)
-    var viewCount: Long = 0
+    viewCount: Long = 0
 ) : BaseTimeEntity() {
+
+    @Column(name = "view_count", nullable = false)
+    var viewCount: Long = viewCount
+        protected set
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

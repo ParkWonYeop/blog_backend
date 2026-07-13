@@ -45,5 +45,6 @@ out/
 __pycache__/
 *.py[cod]
 
-### docker ###
-postgres_data
+### Docker data ###
+postgres_data/
+minio_data/

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration>
-    <property name="LOG_PATH" value="/mnt/data/blog-server/logs/"/>
+    <property name="LOG_PATH" value="${LOG_PATH:-/tmp/blog-api/logs}"/>
     <property name="LOG_FILE_NAME" value="blog-server"/>
 
     <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
@@ -26,5 +26,7 @@
     </appender>
 
     <root level="INFO">
-        <appender-ref ref="CONSOLE"/> <appender-ref ref="FILE"/>    </root>
+        <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="FILE"/>
+    </root>
 </configuration>

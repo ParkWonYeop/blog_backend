@@ -1,8 +1,8 @@
 package me.wypark.blogbackend.api.controller.admin
 
 import me.wypark.blogbackend.api.common.ApiResponse
-import me.wypark.blogbackend.api.dto.AdminDashboardResponse
-import me.wypark.blogbackend.domain.dashboard.AdminDashboardService
+import me.wypark.blogbackend.application.dashboard.AdminDashboardResponse
+import me.wypark.blogbackend.application.dashboard.AdminDashboardService
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.RequestMapping

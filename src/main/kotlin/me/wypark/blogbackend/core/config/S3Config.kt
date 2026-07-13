@@ -1,6 +1,5 @@
 package me.wypark.blogbackend.core.config
 
-import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials
@@ -11,21 +10,21 @@ import java.net.URI
 
 @Configuration
 class S3Config(
-    @Value("\${spring.cloud.aws.credentials.access-key:admin}") private val accessKey: String,
-    @Value("\${spring.cloud.aws.credentials.secret-key:password}") private val secretKey: String,
-    @Value("\${spring.cloud.aws.region.static:ap-northeast-2}") private val regionStr: String, // 변수명 regionStr 확인
-    @Value("\${spring.cloud.aws.s3.endpoint:http://minio:9000}") private val endpoint: String
+    private val properties: AwsProperties
 ) {
 
     @Bean
     fun s3Client(): S3Client {
+        val credentials = properties.credentials
         return S3Client.builder()
-            .region(Region.of(regionStr))
+            .region(Region.of(properties.region.static))
             .credentialsProvider(
-                StaticCredentialsProvider.create(AwsBasicCredentials.create(accessKey, secretKey))
+                StaticCredentialsProvider.create(
+                    AwsBasicCredentials.create(credentials.accessKey, credentials.secretKey)
+                )
             )
-            .endpointOverride(URI.create(endpoint)) // MinIO 주소
-            .forcePathStyle(true) // MinIO 필수 설정
+            .endpointOverride(URI.create(properties.s3.endpoint))
+            .forcePathStyle(true)
             .build()
     }
 }

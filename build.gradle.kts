@@ -13,7 +13,7 @@ description = "blog-backend"
 
 java {
     toolchain {
-        languageVersion = JavaLanguageVersion.of(21) // Java 21 굿!
+        languageVersion = JavaLanguageVersion.of(21)
     }
 }
 
@@ -24,7 +24,6 @@ repositories {
 val springCloudAwsVersion = "3.2.1"
 
 dependencies {
-    // 1. Standard Spring Boot Starters
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
     implementation("org.springframework.boot:spring-boot-starter-security")
     implementation("org.springframework.boot:spring-boot-starter-web")
@@ -35,28 +34,22 @@ dependencies {
     implementation("org.flywaydb:flyway-database-postgresql")
     implementation("io.github.cdimascio:dotenv-java:3.0.0")
 
-    // 2. Kotlin Modules
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
     implementation("org.jetbrains.kotlin:kotlin-reflect")
 
-    // 3. Database Drivers
     runtimeOnly("org.postgresql:postgresql")
 
-    // 4. AWS S3 / MinIO
     implementation("io.awspring.cloud:spring-cloud-aws-starter-s3:$springCloudAwsVersion")
 
-    // 5. QueryDSL
     implementation("com.querydsl:querydsl-jpa:5.1.0:jakarta")
     kapt("com.querydsl:querydsl-apt:5.1.0:jakarta")
     kapt("jakarta.persistence:jakarta.persistence-api")
     kapt("jakarta.annotation:jakarta.annotation-api")
 
-    // 6. JWT (0.12.x)
     implementation("io.jsonwebtoken:jjwt-api:0.12.3")
     runtimeOnly("io.jsonwebtoken:jjwt-impl:0.12.3")
     runtimeOnly("io.jsonwebtoken:jjwt-jackson:0.12.3")
 
-    // 7. Test & Dev
     developmentOnly("org.springframework.boot:spring-boot-devtools")
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")

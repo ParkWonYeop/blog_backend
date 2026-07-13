@@ -1,6 +1,13 @@
 package me.wypark.blogbackend.domain.user
 
-import jakarta.persistence.*
+import jakarta.persistence.Column
+import jakarta.persistence.Entity
+import jakarta.persistence.EnumType
+import jakarta.persistence.Enumerated
+import jakarta.persistence.GeneratedValue
+import jakarta.persistence.GenerationType
+import jakarta.persistence.Id
+import jakarta.persistence.Table
 import me.wypark.blogbackend.domain.common.BaseTimeEntity
 
 @Entity
@@ -10,18 +17,21 @@ class Member(
     val email: String,
 
     @Column(nullable = false)
-    var password: String,
+    val password: String,
 
     @Column(nullable = false)
-    var nickname: String,
+    val nickname: String,
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     val role: Role,
 
-    @Column(nullable = false)
-  var isVerified: Boolean = false
+    isVerified: Boolean = false
 ) : BaseTimeEntity() {
+
+    @Column(nullable = false)
+    var isVerified: Boolean = isVerified
+        protected set
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -33,5 +43,6 @@ class Member(
 }
 
 enum class Role {
-    ROLE_USER, ROLE_ADMIN
+    ROLE_USER,
+    ROLE_ADMIN
 }

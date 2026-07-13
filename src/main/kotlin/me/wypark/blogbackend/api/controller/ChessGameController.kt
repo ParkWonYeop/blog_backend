@@ -2,14 +2,14 @@ package me.wypark.blogbackend.api.controller
 
 import jakarta.validation.Valid
 import me.wypark.blogbackend.api.common.ApiResponse
-import me.wypark.blogbackend.api.dto.ChessGameCreateRequest
-import me.wypark.blogbackend.api.dto.ChessGamePgnResponse
-import me.wypark.blogbackend.api.dto.ChessGameResponse
-import me.wypark.blogbackend.api.dto.ChessGameStatsResponse
-import me.wypark.blogbackend.api.dto.ChessGameSummaryResponse
-import me.wypark.blogbackend.api.dto.ChessMoveRequest
-import me.wypark.blogbackend.domain.auth.CustomUserDetails
-import me.wypark.blogbackend.domain.chess.ChessGameService
+import me.wypark.blogbackend.application.auth.AuthenticatedUser
+import me.wypark.blogbackend.application.chess.ChessGameCreateRequest
+import me.wypark.blogbackend.application.chess.ChessGamePgnResponse
+import me.wypark.blogbackend.application.chess.ChessGameResponse
+import me.wypark.blogbackend.application.chess.ChessGameService
+import me.wypark.blogbackend.application.chess.ChessGameStatsResponse
+import me.wypark.blogbackend.application.chess.ChessGameSummaryResponse
+import me.wypark.blogbackend.application.chess.ChessMoveRequest
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 import org.springframework.data.domain.Sort
@@ -32,7 +32,7 @@ class ChessGameController(
 
     @PostMapping
     fun createGame(
-        @AuthenticationPrincipal userDetails: CustomUserDetails,
+        @AuthenticationPrincipal userDetails: AuthenticatedUser,
         @Valid @RequestBody request: ChessGameCreateRequest
     ): ResponseEntity<ApiResponse<ChessGameResponse>> {
         return ResponseEntity
@@ -42,7 +42,7 @@ class ChessGameController(
 
     @GetMapping
     fun getGames(
-        @AuthenticationPrincipal userDetails: CustomUserDetails,
+        @AuthenticationPrincipal userDetails: AuthenticatedUser,
         @PageableDefault(size = 20, sort = ["updatedAt"], direction = Sort.Direction.DESC) pageable: Pageable
     ): ResponseEntity<ApiResponse<Page<ChessGameSummaryResponse>>> {
         return ResponseEntity.ok(ApiResponse.success(chessGameService.getGames(userDetails.memberId, pageable)))
@@ -50,14 +50,14 @@ class ChessGameController(
 
     @GetMapping("/stats")
     fun getStats(
-        @AuthenticationPrincipal userDetails: CustomUserDetails
+        @AuthenticationPrincipal userDetails: AuthenticatedUser
     ): ResponseEntity<ApiResponse<ChessGameStatsResponse>> {
         return ResponseEntity.ok(ApiResponse.success(chessGameService.getStats(userDetails.memberId)))
     }
 
     @GetMapping("/{gameId}")
     fun getGame(
-        @AuthenticationPrincipal userDetails: CustomUserDetails,
+        @AuthenticationPrincipal userDetails: AuthenticatedUser,
         @PathVariable gameId: String
     ): ResponseEntity<ApiResponse<ChessGameResponse>> {
         return ResponseEntity.ok(ApiResponse.success(chessGameService.getGame(userDetails.memberId, gameId)))
@@ -65,7 +65,7 @@ class ChessGameController(
 
     @GetMapping("/{gameId}/pgn")
     fun getPgn(
-        @AuthenticationPrincipal userDetails: CustomUserDetails,
+        @AuthenticationPrincipal userDetails: AuthenticatedUser,
         @PathVariable gameId: String
     ): ResponseEntity<ApiResponse<ChessGamePgnResponse>> {
         return ResponseEntity.ok(ApiResponse.success(chessGameService.getPgn(userDetails.memberId, gameId)))
@@ -73,7 +73,7 @@ class ChessGameController(
 
     @PostMapping("/{gameId}/moves")
     fun playMove(
-        @AuthenticationPrincipal userDetails: CustomUserDetails,
+        @AuthenticationPrincipal userDetails: AuthenticatedUser,
         @PathVariable gameId: String,
         @Valid @RequestBody request: ChessMoveRequest
     ): ResponseEntity<ApiResponse<ChessGameResponse>> {
@@ -82,7 +82,7 @@ class ChessGameController(
 
     @PostMapping("/{gameId}/resign")
     fun resign(
-        @AuthenticationPrincipal userDetails: CustomUserDetails,
+        @AuthenticationPrincipal userDetails: AuthenticatedUser,
         @PathVariable gameId: String
     ): ResponseEntity<ApiResponse<ChessGameResponse>> {
         return ResponseEntity.ok(ApiResponse.success(chessGameService.resign(userDetails.memberId, gameId)))
@@ -90,7 +90,7 @@ class ChessGameController(
 
     @PostMapping("/{gameId}/undo")
     fun undoMove(
-        @AuthenticationPrincipal userDetails: CustomUserDetails,
+        @AuthenticationPrincipal userDetails: AuthenticatedUser,
         @PathVariable gameId: String
     ): ResponseEntity<ApiResponse<ChessGameResponse>> {
         return ResponseEntity.ok(ApiResponse.success(chessGameService.undoMove(userDetails.memberId, gameId)))

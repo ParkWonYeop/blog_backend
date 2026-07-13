@@ -7,7 +7,7 @@ import me.wypark.blogbackend.domain.comment.Comment
 import me.wypark.blogbackend.domain.comment.CommentRepository
 import me.wypark.blogbackend.domain.post.Post
 import me.wypark.blogbackend.domain.post.PostRepository
-import me.wypark.blogbackend.domain.post.PostViewDailyStatsJdbcRepository
+import me.wypark.blogbackend.application.post.PostViewCounter
 import me.wypark.blogbackend.domain.user.Member
 import me.wypark.blogbackend.domain.user.MemberRepository
 import me.wypark.blogbackend.domain.user.Role
@@ -51,7 +51,7 @@ class AdminDashboardIntegrationTest {
     lateinit var commentRepository: CommentRepository
 
     @Autowired
-    lateinit var postViewDailyStatsJdbcRepository: PostViewDailyStatsJdbcRepository
+    lateinit var postViewCounter: PostViewCounter
 
     @Autowired
     lateinit var jdbcTemplate: NamedParameterJdbcTemplate
@@ -70,6 +70,7 @@ class AdminDashboardIntegrationTest {
                 member = admin
             )
         )
+        val postId = requireNotNull(post.id)
         val today = LocalDate.now(ZoneId.of("Asia/Seoul"))
 
         mockMvc.perform(get("/api/posts/{slug}", post.slug))
@@ -81,7 +82,7 @@ class AdminDashboardIntegrationTest {
         entityManager.flush()
         entityManager.clear()
 
-        assertEquals(2L, findDailyViewCount(post.id!!, today))
+        assertEquals(2L, findDailyViewCount(postId, today))
         assertEquals(2L, postRepository.findBySlug(post.slug)?.viewCount)
     }
 
@@ -125,12 +126,14 @@ class AdminDashboardIntegrationTest {
                 category = category
             )
         )
+        val postId = requireNotNull(post.id)
+        val stalePostId = requireNotNull(stalePost.id)
         val today = LocalDate.now(ZoneId.of("Asia/Seoul"))
 
-        repeat(3) { postViewDailyStatsJdbcRepository.incrementPostView(post.id!!, today) }
-        repeat(2) { postViewDailyStatsJdbcRepository.incrementPostView(post.id!!, today.minusDays(1)) }
-        repeat(10) { postViewDailyStatsJdbcRepository.incrementPostView(stalePost.id!!, today) }
-        markPostAsOld(stalePost.id!!, today.minusDays(181).atStartOfDay())
+        repeat(3) { postViewCounter.increment(postId, today) }
+        repeat(2) { postViewCounter.increment(postId, today.minusDays(1)) }
+        repeat(10) { postViewCounter.increment(stalePostId, today) }
+        markPostAsOld(stalePostId, today.minusDays(181).atStartOfDay())
 
         val unanswered = commentRepository.saveAndFlush(
             Comment(
@@ -179,7 +182,8 @@ class AdminDashboardIntegrationTest {
             .andExpect(jsonPath("$.data.actionItems.unansweredComments").value(1))
             .andExpect(jsonPath("$.data.actionItems.stalePopularPosts").value(1))
 
-        assertEquals(unanswered.id, commentRepository.findById(unanswered.id!!).orElseThrow().id)
+        val unansweredId = requireNotNull(unanswered.id)
+        assertEquals(unansweredId, commentRepository.findById(unansweredId).orElseThrow().id)
     }
 
     private fun saveMember(email: String, role: Role): Member {
@@ -206,7 +210,7 @@ class AdminDashboardIntegrationTest {
                 .addValue("postId", postId)
                 .addValue("statDate", date),
             Number::class.java
-        )!!.toLong()
+        ).let(::requireNotNull).toLong()
     }
 
     private fun markPostAsOld(postId: Long, dateTime: LocalDateTime) {

@@ -1,8 +1,8 @@
 package me.wypark.blogbackend.api.controller
 
 import me.wypark.blogbackend.api.common.ApiResponse
-import me.wypark.blogbackend.api.dto.ChessPuzzleResponse
-import me.wypark.blogbackend.domain.chess.ChessPuzzleService
+import me.wypark.blogbackend.application.chess.ChessPuzzleResponse
+import me.wypark.blogbackend.application.chess.ChessPuzzleService
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.GetMapping
@@ -23,7 +23,13 @@ class ChessPuzzleController(
         val puzzle = chessPuzzleService.getTodayPuzzle(timezone)
             ?: return ResponseEntity
                 .status(HttpStatus.NOT_FOUND)
-                .body(ApiResponse("CHESS_PUZZLE_NOT_FOUND", "오늘의 체스 퍼즐이 준비되지 않았습니다.", null))
+                .body(
+                    ApiResponse(
+                        code = "CHESS_PUZZLE_NOT_FOUND",
+                        message = "오늘의 체스 퍼즐이 준비되지 않았습니다.",
+                        data = null
+                    )
+                )
 
         return ResponseEntity.ok(ApiResponse.success(puzzle))
     }
