@@ -31,7 +31,7 @@ jobs:
         run: python -m py_compile maia-engine/app/main.py
 
   deploy:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     needs: test
     steps:
       - name: Check out repository
