@@ -32,24 +32,25 @@ JAVA_HOME=/path/to/jdk-21 ./gradlew clean check
 
 1. 요청받지 않은 API 동작 변경을 하지 않는다.
 2. 기존 URL, HTTP 메서드, 응답 필드, 메시지, 상태 코드, 정렬과 페이징 의미를 호환성 계약으로 취급한다.
-3. `api → application → domain` 의존성 방향을 거슬러 참조하지 않는다.
-4. `application`은 `infrastructure` 구현 클래스를 직접 참조하지 않고 포트 인터페이스에 의존한다.
+3. `controller → service → repository/entity` 의존성 방향을 거슬러 참조하지 않는다.
+4. service는 인프라 구현 클래스(`infra`)를 직접 참조하지 않고 포트 인터페이스에 의존한다.
 5. JPA 엔티티를 컨트롤러에서 직접 반환하지 않는다.
 6. 외부 시스템 호출 실패를 `printStackTrace`로 처리하거나 조용히 삼키지 않는다.
 7. 생성된 파일, 빌드 산출물, 로컬 데이터 디렉터리는 수정하거나 커밋하지 않는다.
 
-계층 위반은 `LayerDependencyTest`에서 검사한다. 테스트를 통과시키기 위해 규칙을 약화하지 말고 잘못된
-의존성을 올바른 계층으로 이동한다.
-
 ## 패키지 배치 기준
+
+도메인 중심 구조: `domain/<기능>/{controller,service,repository,entity,dto,infra}` + `global/{config,security,error,common}`
 
 | 패키지 | 책임 | 포함해도 되는 것 | 포함하면 안 되는 것 |
 | --- | --- | --- | --- |
-| `api` | HTTP 전달 계층 | Controller, HTTP 전용 모델, `ApiResponse` | JPA 쿼리, 외부 저장소 구현, 도메인 상태 변경 |
-| `application` | 유스케이스 조정 | Service, command/response model, port interface | Redis/S3/JDBC 구현 세부사항 |
-| `domain` | 핵심 모델과 규칙 | Entity, 도메인 메서드, repository contract, read model | Controller, API DTO, 인프라 어댑터 |
-| `infrastructure` | 외부 기술 연동 | Redis/S3/JDBC/Security 구현체 | HTTP 응답 조립, 비즈니스 정책 결정 |
-| `core` | 횡단 관심사 | Configuration, JWT adapter, global error handling | 기능별 유스케이스 |
+| `domain/<기능>/controller` | HTTP 전달 계층 | Controller, 요청/응답 바인딩 | JPA 쿼리, 외부 저장소 구현, 도메인 상태 변경 |
+| `domain/<기능>/service` | 유스케이스 조정 | Service, port interface | Redis/S3/JDBC 구현 세부사항 |
+| `domain/<기능>/dto` | 요청/응답 모델 | request/response/command 모델 | 비즈니스 로직 |
+| `domain/<기능>/entity` | 핵심 모델과 규칙 | Entity, 도메인 메서드 | Controller, 인프라 어댑터 |
+| `domain/<기능>/repository` | 영속성 계약 | Spring Data/QueryDSL repository | HTTP 응답 조립 |
+| `domain/<기능>/infra` | 외부 기술 연동 | Redis/S3/JDBC 구현체 | HTTP 응답 조립, 비즈니스 정책 결정 |
+| `global` | 횡단 관심사 | config, security(JWT), error, common | 기능별 유스케이스 |
 | `maia-engine` | 체스 추론 프로세스 | FastAPI endpoint, Maia/python-chess 연동 | 블로그 DB 접근, 인증·HTTP 응답 정책 |
 
 새 기능은 먼저 어느 계층의 책임인지 정한 후 파일을 만든다. 작은 기능에 불필요한 추상화를 추가하지
@@ -133,7 +134,6 @@ Flyway migration을 추가한다. PostgreSQL에서 먼저 성립하는 SQL을 �
 - 엔티티 상태와 연관관계: domain 단위 테스트
 - QueryDSL/JPA/JDBC 쿼리: H2 또는 PostgreSQL 통합 테스트
 - Security, HTTP 상태, JSON 계약: MockMvc 통합 테스트
-- 계층 이동이나 새 패키지: `LayerDependencyTest` 확인
 - 시간 기반 기능: 고정 또는 가변 `Clock` 사용
 
 최소 검증:

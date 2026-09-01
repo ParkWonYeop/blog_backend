@@ -1,0 +1,33 @@
+package me.wypark.blogbackend.domain.post.repository
+import me.wypark.blogbackend.domain.post.entity.Post
+
+import me.wypark.blogbackend.domain.category.entity.Category
+import org.springframework.data.domain.Page
+import org.springframework.data.domain.Pageable
+import org.springframework.data.jpa.repository.JpaRepository
+import org.springframework.data.jpa.repository.Modifying
+import org.springframework.data.jpa.repository.Query
+import org.springframework.data.repository.query.Param
+
+interface PostRepository : JpaRepository<Post, Long>, PostRepositoryCustom {
+
+    fun findBySlug(slug: String): Post?
+
+    fun existsBySlug(slug: String): Boolean
+
+    override fun findAll(pageable: Pageable): Page<Post>
+
+    fun findAllByCategory(category: Category, pageable: Pageable): Page<Post>
+
+    @Modifying(clearAutomatically = true)
+    @Query("UPDATE Post p SET p.category = null WHERE p.category IN :categories")
+    fun bulkUpdateCategoryToNull(@Param("categories") categories: List<Category>)
+
+    @Modifying
+    @Query("UPDATE Post p SET p.viewCount = p.viewCount + 1 WHERE p.slug = :slug")
+    fun incrementViewCountBySlug(@Param("slug") slug: String)
+
+    fun findFirstByIdLessThanOrderByIdDesc(id: Long): Post?
+
+    fun findFirstByIdGreaterThanOrderByIdAsc(id: Long): Post?
+}
