@@ -56,10 +56,6 @@ class Post(
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     val id: Long? = null
 
-    fun increaseViewCount() {
-        this.viewCount++
-    }
-
     fun addTags(postTags: List<PostTag>) {
         this.tags.addAll(postTags)
     }

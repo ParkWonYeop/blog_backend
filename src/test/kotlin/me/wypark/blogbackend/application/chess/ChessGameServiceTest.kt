@@ -1,5 +1,6 @@
 package me.wypark.blogbackend.application.chess
 
+import me.wypark.blogbackend.application.common.BusinessException
 import me.wypark.blogbackend.domain.chess.ChessGameRecord
 import me.wypark.blogbackend.domain.chess.ChessGameSession
 import me.wypark.blogbackend.domain.chess.ChessSide
@@ -289,7 +290,7 @@ class ChessGameServiceTest {
             )
         )
 
-        assertFailsWith<IllegalArgumentException> {
+        assertFailsWith<BusinessException> {
             service.undoMove(MEMBER_ID, "game-1")
         }
     }
@@ -316,7 +317,7 @@ class ChessGameServiceTest {
             )
         )
 
-        assertFailsWith<IllegalArgumentException> {
+        assertFailsWith<BusinessException> {
             service.playMove(MEMBER_ID, "game-1", ChessMoveRequest("d2d4"))
         }
     }
@@ -343,7 +344,7 @@ class ChessGameServiceTest {
             )
         )
 
-        assertFailsWith<IllegalArgumentException> {
+        assertFailsWith<BusinessException> {
             service.getGame(MEMBER_ID, "game-1")
         }
     }

@@ -24,7 +24,6 @@ class CorsConfig(
         config.addAllowedMethod("*")
 
         config.addExposedHeader("Authorization")
-        config.addExposedHeader("Refresh-Token")
 
         source.registerCorsConfiguration("/api/**", config)
         return CorsFilter(source)

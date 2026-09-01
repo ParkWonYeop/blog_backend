@@ -61,7 +61,7 @@ data class PostSummaryResponse(
                 viewCount = post.viewCount,
                 createdAt = post.createdAt,
                 updatedAt = post.updatedAt,
-                content = post.content
+                content = excerpt(post.content)
             )
         }
 
@@ -74,8 +74,21 @@ data class PostSummaryResponse(
                 viewCount = summary.viewCount,
                 createdAt = summary.createdAt,
                 updatedAt = summary.updatedAt,
-                content = summary.content
+                content = excerpt(summary.content)
             )
+        }
+
+        /** 목록 API는 본문 전체 대신 마크다운을 걷어낸 앞부분만 내려보낸다. */
+        private fun excerpt(content: String?, maxLength: Int = 300): String? {
+            if (content == null) return null
+            val plain = content
+                .replace(Regex("""```[\s\S]*?```"""), " ")
+                .replace(Regex("""!\[(.*?)]\(.*?\)"""), "$1")
+                .replace(Regex("""\[(.*?)]\(.*?\)"""), "$1")
+                .replace(Regex("[#*`_~>]"), "")
+                .replace(Regex("""\s+"""), " ")
+                .trim()
+            return plain.take(maxLength)
         }
     }
 }

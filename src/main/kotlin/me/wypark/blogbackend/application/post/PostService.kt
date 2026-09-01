@@ -32,16 +32,16 @@ class PostService(
 ) {
 
     fun getPosts(pageable: Pageable): Page<PostSummaryResponse> {
-        return postRepository.findAll(pageable).map(PostSummaryResponse::from)
+        return postRepository.search(null, null, null, pageable).map(PostSummaryResponse::from)
     }
 
     @Transactional
     fun getPostBySlug(slug: String): PostResponse {
+        postRepository.incrementViewCountBySlug(slug)
         val post = postRepository.findBySlug(slug)
-            ?: throw BusinessException("해당 게시글을 찾을 수 없습니다: $slug")
+            ?: throw BusinessException.notFound("해당 게시글을 찾을 수 없습니다: $slug")
         val postId = requireNotNull(post.id) { "Persisted post must have an id" }
 
-        post.increaseViewCount()
         val viewDate = LocalDate.now(clock.withZone(KOREA_ZONE_ID))
         postViewCounter.increment(postId, viewDate)
 
@@ -72,7 +72,7 @@ class PostService(
     @Transactional
     fun updatePost(id: Long, request: PostSaveRequest): Long {
         val post = postRepository.findByIdOrNull(id)
-            ?: throw BusinessException("존재하지 않는 게시글입니다.")
+            ?: throw BusinessException.notFound("존재하지 않는 게시글입니다.")
 
         deleteRemovedImages(post.content, request.content)
 
@@ -91,7 +91,7 @@ class PostService(
     @Transactional
     fun deletePost(id: Long) {
         val post = postRepository.findByIdOrNull(id)
-            ?: throw BusinessException("존재하지 않는 게시글입니다.")
+            ?: throw BusinessException.notFound("존재하지 않는 게시글입니다.")
 
         MarkdownImageExtractor.extractFileNames(post.content).forEach(imageService::deleteImage)
         postRepository.delete(post)

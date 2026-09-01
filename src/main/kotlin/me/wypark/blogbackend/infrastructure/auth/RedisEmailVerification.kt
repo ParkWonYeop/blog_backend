@@ -26,7 +26,19 @@ class RedisEmailVerification(
     }
 
     override fun verifyCode(email: String, code: String): Boolean {
-        return redisTemplate.opsForValue().get(key(email)) == code
+        val saved = redisTemplate.opsForValue().get(key(email)) ?: return false
+        if (saved != code) {
+            val attempts = redisTemplate.opsForValue().increment(attemptsKey(email)) ?: 1
+            redisTemplate.expire(attemptsKey(email), CODE_TTL_MINUTES, TimeUnit.MINUTES)
+            if (attempts >= MAX_ATTEMPTS) {
+                redisTemplate.delete(key(email))
+                redisTemplate.delete(attemptsKey(email))
+            }
+            return false
+        }
+        redisTemplate.delete(key(email))
+        redisTemplate.delete(attemptsKey(email))
+        return true
     }
 
     private fun verificationCode(): String {
@@ -68,9 +80,12 @@ class RedisEmailVerification(
 
     private fun key(email: String): String = "$KEY_PREFIX$email"
 
+    private fun attemptsKey(email: String): String = "$KEY_PREFIX$email:attempts"
+
     companion object {
         private const val KEY_PREFIX = "Verify:"
         private const val CODE_TTL_MINUTES = 5L
+        private const val MAX_ATTEMPTS = 5L
         private const val MINIMUM_CODE = 100_000
         private const val CODE_RANGE = 899_999
         private val random = SecureRandom()

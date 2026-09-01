@@ -5,6 +5,7 @@ import me.wypark.blogbackend.domain.user.Member
 import me.wypark.blogbackend.domain.user.MemberRepository
 import me.wypark.blogbackend.domain.user.Role
 import org.springframework.security.authentication.AuthenticationManager
+import org.springframework.security.core.AuthenticationException
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken
 import org.springframework.security.core.userdetails.UserDetailsService
 import org.springframework.security.crypto.password.PasswordEncoder
@@ -40,30 +41,32 @@ class AuthService(
 
     @Transactional
     fun login(request: LoginRequest): TokenDto {
-        val member = memberRepository.findByEmail(request.email)
-            ?: throw BusinessException("가입되지 않은 이메일입니다.")
-        if (!passwordEncoder.matches(request.password, member.password)) {
-            throw BusinessException("비밀번호가 일치하지 않습니다.")
+        val authentication = try {
+            authenticationManager.authenticate(
+                UsernamePasswordAuthenticationToken(request.email, request.password)
+            )
+        } catch (_: AuthenticationException) {
+            throw BusinessException("이메일 또는 비밀번호가 올바르지 않습니다.")
         }
+
+        val member = memberRepository.findByEmail(request.email)
+            ?: throw BusinessException("이메일 또는 비밀번호가 올바르지 않습니다.")
         if (!member.isVerified) {
             throw BusinessException("이메일 인증이 필요합니다.")
         }
 
-        val authentication = authenticationManager.authenticate(
-            UsernamePasswordAuthenticationToken(request.email, request.password)
-        )
         val tokens = tokenProvider.generate(authentication)
         refreshTokenStore.save(authentication.name, tokens.refreshToken)
         return tokens
     }
 
     @Transactional
-    fun reissue(accessToken: String, refreshToken: String): TokenDto {
+    fun reissue(refreshToken: String): TokenDto {
         if (!tokenProvider.isValid(refreshToken)) {
             throw BusinessException("유효하지 않은 Refresh Token입니다.")
         }
 
-        val email = tokenProvider.extractSubject(accessToken)
+        val email = tokenProvider.extractSubject(refreshToken)
         val savedToken = refreshTokenStore.findByEmail(email)
             ?: throw BusinessException("로그아웃 된 사용자입니다.")
         if (savedToken != refreshToken) {

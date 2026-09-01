@@ -1,5 +1,6 @@
 package me.wypark.blogbackend.application.chess
 
+import me.wypark.blogbackend.application.common.BusinessException
 import me.wypark.blogbackend.domain.chess.ChessGameSession
 import me.wypark.blogbackend.domain.chess.ChessSide
 import org.springframework.data.domain.Page
@@ -78,7 +79,7 @@ class ChessGameService(
         }
 
         val record = chessGameHistoryStore.findByGameIdAndMemberId(gameId, memberId)
-            ?: throw IllegalArgumentException("Chess game not found.")
+            ?: throw BusinessException.notFound("Chess game not found.")
         return ChessGameResponse.from(record)
     }
 
@@ -90,8 +91,8 @@ class ChessGameService(
     @Transactional
     fun playMove(memberId: Long, gameId: String, request: ChessMoveRequest): ChessGameResponse {
         val session = getPlayableSession(memberId, gameId)
-        require(session.status == "IN_PROGRESS") { "This chess game is already finished." }
-        require(session.turn == session.playerColor) { "It is not the player's turn." }
+        if (session.status != "IN_PROGRESS") throw BusinessException("This chess game is already finished.")
+        if (session.turn != session.playerColor) throw BusinessException("It is not the player's turn.")
 
         val movesAfterPlayer = session.moves + request.move
         val maiaResponse = maiaEngine.playMove(
@@ -106,7 +107,7 @@ class ChessGameService(
     @Transactional
     fun resign(memberId: Long, gameId: String): ChessGameResponse {
         val session = getPlayableSession(memberId, gameId)
-        require(session.status == "IN_PROGRESS") { "This chess game is already finished." }
+        if (session.status != "IN_PROGRESS") throw BusinessException("This chess game is already finished.")
 
         val result = session.playerColor.resignationResult()
         val updated = session.copy(
@@ -123,11 +124,11 @@ class ChessGameService(
     @Transactional
     fun undoMove(memberId: Long, gameId: String): ChessGameResponse {
         val session = getPlayableSession(memberId, gameId)
-        require(session.status != "RESIGNED") { "Resigned games cannot be undone." }
+        if (session.status == "RESIGNED") throw BusinessException("Resigned games cannot be undone.")
 
         val lastPlayerMoveIndex = session.moves.indices
             .lastOrNull { sideForMoveIndex(it) == session.playerColor }
-            ?: throw IllegalArgumentException("There is no player move to undo.")
+            ?: throw BusinessException("There is no player move to undo.")
         val revertedMoves = session.moves.take(lastPlayerMoveIndex)
         val labels = playerLabels(session.playerColor, session.rating, session.model)
         val state = maiaEngine.getState(
@@ -160,7 +161,7 @@ class ChessGameService(
         }
 
         val record = chessGameHistoryStore.findByGameIdAndMemberId(gameId, memberId)
-            ?: throw IllegalArgumentException("Chess game not found.")
+            ?: throw BusinessException.notFound("Chess game not found.")
         return record.toSession()
     }
 
@@ -170,7 +171,7 @@ class ChessGameService(
     }
 
     private fun requireOwnedBy(session: ChessGameSession, memberId: Long) {
-        require(session.memberId == memberId) { "Chess game not found." }
+        if (session.memberId != memberId) throw BusinessException.notFound("Chess game not found.")
     }
 
     private fun sideForMoveIndex(index: Int): ChessSide {

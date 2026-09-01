@@ -17,15 +17,8 @@ class GlobalExceptionHandler {
     @ExceptionHandler(BusinessException::class)
     fun handleBusinessException(exception: BusinessException): ResponseEntity<ApiResponse<Nothing>> {
         return ResponseEntity
-            .badRequest()
+            .status(exception.status)
             .body(ApiResponse.error(exception.message, exception.code))
-    }
-
-    @ExceptionHandler(IllegalArgumentException::class, IllegalStateException::class)
-    fun handleLegacyBusinessException(e: RuntimeException): ResponseEntity<ApiResponse<Nothing>> {
-        return ResponseEntity
-            .badRequest()
-            .body(ApiResponse.error(e.message ?: "잘못된 요청입니다."))
     }
 
     @ExceptionHandler(MethodArgumentNotValidException::class)
