@@ -71,7 +71,8 @@ class SecurityConfig(
                     "/api/posts/**",
                     "/api/categories/**",
                     "/api/tags/**",
-                    "/api/chess-puzzles/**"
+                    "/api/chess-puzzles/**",
+                    "/api/stats/**"
                 ).permitAll()
                 auth.requestMatchers(HttpMethod.GET, "/api/profile").permitAll()
 
