@@ -46,6 +46,14 @@ services:
       - MAIA_DEVICE=cpu
       - MAIA_USE_AMP=false
       - HF_HOME=/models/huggingface
+      - MAIA_MAX_ENGINES=2
+      - MAIA_ENGINE_IDLE_SECONDS=900
+      - MAIA_ENGINE_WAIT_SECONDS=30
+      - OMP_NUM_THREADS=2
+      - MKL_NUM_THREADS=2
+    # systemd 유닛(deploy/systemd/maia-engine.service)과 같은 상한을 둔다.
+    mem_limit: 3g
+    cpus: 2
     volumes:
       - maia_model_cache:/models
     healthcheck:

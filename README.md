@@ -265,6 +265,10 @@ curl -X POST http://localhost:8080/api/admin/posts \
 | `REDIS_HOST` | 운영 | Redis 호스트 |
 | `MAIA_ENGINE_URL` | 운영 | Maia FastAPI 서비스 주소, 기본값 `http://localhost:8000` |
 | `MAIA_GAME_SESSION_TTL` | 운영 | Redis 게임 세션 TTL, 기본값 `PT6H` |
+| `MAIA_MAX_ENGINES` | Maia 엔진 | 동시에 유지할 `maia3-uci` 프로세스 수, 기본값 `2` (모델별로 프로세스가 하나씩 뜨며 LRU로 퇴출) |
+| `MAIA_ENGINE_IDLE_SECONDS` | Maia 엔진 | 이 시간 동안 쓰이지 않은 엔진 프로세스를 종료, 기본값 `900` |
+| `MAIA_ENGINE_WAIT_SECONDS` | Maia 엔진 | 엔진이 바쁠 때 요청이 기다리는 최대 시간, 초과 시 503, 기본값 `30` |
+| `OMP_NUM_THREADS` | Maia 엔진 | 추론에 쓸 CPU 스레드 수. systemd 유닛과 Compose는 `2`로 고정 |
 | `S3_ACCESS_KEY`, `S3_SECRET_KEY` | 운영 | S3 호환 저장소 인증 정보 |
 | `MINIO_ROOT_USER`, `MINIO_ROOT_PASSWORD` | 로컬 | MinIO 관리자 계정 |
 

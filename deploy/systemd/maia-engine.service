@@ -14,10 +14,25 @@ Environment=MAIA_USE_AMP=false
 Environment=HF_HOME=/root/blog-backend/.cache/huggingface
 Environment=PYTHONUNBUFFERED=1
 Environment=PATH=/root/blog-backend/maia-engine-venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+# 엔진 프로세스 수/유휴 회수: 모델당 torch 프로세스가 하나씩 뜨므로 2개 이상은 메모리를 곱으로 먹는다.
+Environment=MAIA_MAX_ENGINES=2
+Environment=MAIA_ENGINE_IDLE_SECONDS=900
+Environment=MAIA_ENGINE_WAIT_SECONDS=30
+# torch CPU 스레드 상한. 없으면 추론 한 번에 모든 코어를 점유해 blog-api 응답이 같이 느려진다.
+Environment=OMP_NUM_THREADS=2
+Environment=MKL_NUM_THREADS=2
 ExecStart=/root/blog-backend/maia-engine-venv/bin/python -m uvicorn app.main:app --host 127.0.0.1 --port 8000
 Restart=always
 RestartSec=5
 TimeoutStartSec=300
+# cgroup 상한: uvicorn과 자식 maia3-uci 프로세스를 합쳐서 제한한다.
+# MemoryHigh를 넘으면 스로틀, MemoryMax를 넘으면 OOM kill 후 Restart=always로 재기동된다.
+# ponytail: 서버 사양(free -m, nproc)을 보고 값을 조정할 것. 79m 모델 2개 동시 로드 기준으로 잡았다.
+MemoryHigh=2G
+MemoryMax=3G
+CPUQuota=200%
+TasksMax=256
+Nice=5
 
 [Install]
 WantedBy=multi-user.target
