@@ -7,3 +7,12 @@ spring:
 maia:
   engine-url: ${MAIA_ENGINE_URL:http://localhost:8000}
   game-session-ttl: ${MAIA_GAME_SESSION_TTL:PT6H}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health   # health 외 actuator 엔드포인트는 노출하지 않는다
+  health:
+    mail:
+      enabled: false      # 호출마다 SMTP에 접속하므로 헬스체크에서 제외

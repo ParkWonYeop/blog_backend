@@ -206,9 +206,25 @@ if ! systemctl restart "$SERVICE_NAME"; then
   exit 1
 fi
 
-sleep 8
+api_health_url="http://127.0.0.1:8080/actuator/health"
+api_healthy=0
+for _ in $(seq 1 45); do
+  sleep 2
+  if ! systemctl is-active --quiet "$SERVICE_NAME"; then
+    break
+  fi
+  if command -v curl >/dev/null 2>&1; then
+    if curl -fsS "$api_health_url" >/dev/null 2>&1; then
+      api_healthy=1
+      break
+    fi
+  elif "$python_bin" -c "import urllib.request; urllib.request.urlopen('$api_health_url', timeout=5).read()" >/dev/null 2>&1; then
+    api_healthy=1
+    break
+  fi
+done
 
-if ! systemctl is-active --quiet "$SERVICE_NAME"; then
+if [ "$api_healthy" -ne 1 ]; then
   rollback_backend
   journalctl -u "$SERVICE_NAME" -n 120 --no-pager
   exit 1

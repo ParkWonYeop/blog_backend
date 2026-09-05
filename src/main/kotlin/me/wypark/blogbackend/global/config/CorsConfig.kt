@@ -26,6 +26,7 @@ class CorsConfig(
         config.addExposedHeader("Authorization")
 
         source.registerCorsConfiguration("/api/**", config)
+        source.registerCorsConfiguration("/actuator/health", config)
         return CorsFilter(source)
     }
 }

@@ -65,6 +65,7 @@ class SecurityConfig(
 
             .authorizeHttpRequests { auth ->
                 auth.requestMatchers("/api/auth/**").permitAll()
+                auth.requestMatchers(HttpMethod.GET, "/actuator/health").permitAll()
 
                 auth.requestMatchers(
                     HttpMethod.GET,
