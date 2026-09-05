@@ -66,6 +66,8 @@ class SecurityConfig(
             .authorizeHttpRequests { auth ->
                 auth.requestMatchers("/api/auth/**").permitAll()
                 auth.requestMatchers(HttpMethod.GET, "/actuator/health").permitAll()
+                // WebSocket 핸드셰이크는 열어 두고, 연결 후 첫 AUTH 메시지의 JWT로 인증한다.
+                auth.requestMatchers("/ws/**").permitAll()
 
                 auth.requestMatchers(
                     HttpMethod.GET,

@@ -19,6 +19,7 @@ Maia 기반 체스 대국을 하나의 백엔드로 제공합니다.
 - 관리자 전용 게시글·카테고리·댓글·프로필·대시보드 API
 - 일자별로 순환하는 오늘의 체스 퍼즐
 - Maia3 난이도·모델 선택, 대국 저장, 기권·무르기와 PGN 조회를 지원하는 체스 게임
+- 초대 코드·랜덤 매칭으로 시작하는 WebSocket 기반 온라인 체스 대국 (블리츠·래피드 시계, 끊김 90초 후 기권 처리)
 
 ## 기술 스택
 
@@ -226,6 +227,11 @@ curl -X POST http://localhost:8080/api/admin/posts \
 | `POST` | `/api/chess/games/{gameId}/moves` | 로그인 | UCI 형식의 수를 두고 Maia 응답 요청 |
 | `POST` | `/api/chess/games/{gameId}/resign` | 로그인 | 게임 기권 |
 | `POST` | `/api/chess/games/{gameId}/undo` | 로그인 | 마지막 사용자 수와 Maia 응답 무르기 |
+| `GET` | `/api/chess/online/time-controls` | 로그인 | 온라인 대국 시간 설정 목록 |
+| `GET` | `/api/chess/online/games` | 로그인 | 내 온라인 대국 목록 (진행 중 포함) |
+| `GET` | `/api/chess/online/games/active` | 로그인 | 진행 중인 내 온라인 대국, 없으면 `data: null` |
+| `GET` | `/api/chess/online/games/{gameId}` | 로그인 | 온라인 대국 상태 조회 (참가자만) |
+| `WS` | `/ws/chess` | 로그인 | 온라인 대국 실시간 채널. 연결 후 `{"type":"AUTH","token":...}`로 인증하며 계정당 최신 연결 하나만 유지 |
 | `GET` | `/api/admin/dashboard` | 관리자 | 통계·액션 아이템 조회 |
 | `POST/PUT/DELETE` | `/api/admin/posts/**` | 관리자 | 게시글 관리 |
 | `POST/PUT/DELETE` | `/api/admin/categories/**` | 관리자 | 카테고리 관리 |

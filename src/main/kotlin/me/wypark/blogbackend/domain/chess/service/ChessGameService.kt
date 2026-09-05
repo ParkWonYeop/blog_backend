@@ -9,6 +9,7 @@ import me.wypark.blogbackend.domain.chess.dto.ChessMoveRequest
 import me.wypark.blogbackend.global.common.BusinessException
 import me.wypark.blogbackend.domain.chess.entity.ChessGameSession
 import me.wypark.blogbackend.domain.chess.entity.ChessSide
+import me.wypark.blogbackend.domain.chess.entity.withPgnResult
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 import org.springframework.stereotype.Service
@@ -186,20 +187,6 @@ class ChessGameService(
 
     private fun ChessSide.resignationResult(): String {
         return if (this == ChessSide.WHITE) "0-1" else "1-0"
-    }
-
-    private fun String.withPgnResult(result: String): String {
-        val withHeader = if (contains(Regex("""\[Result\s+"[^"]*"]"""))) {
-            replace(Regex("""\[Result\s+"[^"]*"]"""), """[Result "$result"]""")
-        } else {
-            """[Result "$result"]""" + "\n" + this
-        }
-        val trailingResult = Regex("""(1-0|0-1|1/2-1/2|\*)\s*$""")
-        return if (trailingResult.containsMatchIn(withHeader)) {
-            trailingResult.replace(withHeader, result)
-        } else {
-            "${withHeader.trimEnd()} $result"
-        }
     }
 
     private fun playerLabels(playerColor: ChessSide, rating: Int, model: String): PlayerLabels {

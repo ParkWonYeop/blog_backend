@@ -30,6 +30,8 @@ enum class ChessSide(val value: String) {
 
     fun opposite(): ChessSide = if (this == WHITE) BLACK else WHITE
 
+    fun winResult(): String = if (this == WHITE) "1-0" else "0-1"
+
     companion object {
         fun from(value: String): ChessSide {
             return entries.firstOrNull { it.value.equals(value, ignoreCase = true) }
