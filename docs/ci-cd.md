@@ -27,7 +27,7 @@
 6. 서버에서 Maia 엔진 코드를 `/opt/blog-backend/maia-engine`으로 교체
 7. `/opt/blog-backend/maia-engine-venv`를 생성하거나 재사용
 8. venv가 깨져 있거나 pip가 없으면 삭제 후 재생성
-9. `requirements.txt` 해시가 바뀌었으면 Python 의존성 재설치
+9. `requirements.txt` 해시가 바뀌었으면 캐시 없이 CPU 전용 PyTorch wheel과 Python 의존성 재설치
 10. `maia-engine.service` 설치, `systemctl daemon-reload`, enable, restart
 11. `http://127.0.0.1:8000/health` 헬스체크
 12. Spring Boot jar를 `/root/blog-backend/blog-backend.jar`로 교체
@@ -56,7 +56,7 @@ Maia 엔진 배포 실패 시 이전 Maia 코드 디렉터리로 롤백을 시�
 - runner 서비스 계정이 `/root/blog-backend`와 `/opt/blog-backend`에 쓸 수 있고 `/etc/systemd/system`에 서비스 파일을 설치하며 `systemctl`을 실행할 수 있어야 한다.
 - Python venv 패키지가 없는 서버에서는 runner 계정이 `apt-get install`을 실행할 수 있어야 한다. root가 아니면 필요한 명령에 한정한 sudo 권한이 필요하다.
 
-첫 설치 또는 Maia3 의존성 변경 시 Python 패키지 설치와 모델 캐시 준비 때문에 배포가 오래 걸릴 수 있다. 모델 캐시는 `/var/lib/blog-maia/huggingface`에 저장된다.
+첫 설치 또는 Maia3 의존성 변경 시 Python 패키지 설치와 모델 캐시 준비 때문에 배포가 오래 걸릴 수 있다. CUDA 패키지는 설치하지 않으며 모델 캐시는 `/var/lib/blog-maia/huggingface`에 저장된다. 중단된 `/opt` venv가 현재 서비스에서 사용되지 않으면 다음 배포가 이를 제거하고 pip 다운로드 캐시도 비워 디스크를 회수한다.
 
 ## 체스 배포 확인
 

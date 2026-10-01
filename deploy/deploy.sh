@@ -131,7 +131,7 @@ if ! "$MAIA_VENV_DIR/bin/python" -m pip --version >/dev/null 2>&1; then
   fi
 fi
 
-if ! "$MAIA_VENV_DIR/bin/python" -m pip install --upgrade pip; then
+if ! "$MAIA_VENV_DIR/bin/python" -m pip install --no-cache-dir --upgrade pip; then
   rollback_maia
   exit 1
 fi
@@ -142,12 +142,15 @@ if [ -f "$MAIA_REQUIREMENTS_HASH_FILE" ]; then
 fi
 
 if [ "$requirements_hash" != "$saved_requirements_hash" ]; then
-  if ! "$MAIA_VENV_DIR/bin/python" -m pip install -r "$MAIA_DIR/requirements.txt"; then
+  if ! "$MAIA_VENV_DIR/bin/python" -m pip install --no-cache-dir -r "$MAIA_DIR/requirements.txt"; then
     rollback_maia
     exit 1
   fi
   printf '%s\n' "$requirements_hash" > "$MAIA_REQUIREMENTS_HASH_FILE"
 fi
+
+chown -R root:blog-maia "$MAIA_VENV_DIR"
+chmod -R g=rX,o= "$MAIA_VENV_DIR"
 
 if ! "$MAIA_VENV_DIR/bin/python" -m py_compile "$MAIA_DIR/app/main.py"; then
   rollback_maia

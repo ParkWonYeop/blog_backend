@@ -65,6 +65,18 @@ jobs:
     timeout-minutes: 45
     environment: production
     steps:
+      - name: Recover interrupted Maia installation
+        shell: bash
+        run: |
+          set -euo pipefail
+          active_exec="$(systemctl show -p ExecStart --value maia-engine.service 2>/dev/null || true)"
+          if [ -d /opt/blog-backend/maia-engine-venv ] && [[ "$active_exec" != *"/opt/blog-backend/maia-engine-venv/"* ]]; then
+            rm -rf /opt/blog-backend/maia-engine-venv
+          fi
+          if command -v python3 >/dev/null 2>&1; then
+            python3 -m pip cache purge || true
+          fi
+
       - name: Download verified deployment files
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
         with:
