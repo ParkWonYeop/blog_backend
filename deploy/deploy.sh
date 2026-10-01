@@ -11,6 +11,8 @@ MAIA_NEW_DIR="$MAIA_REMOTE_DIR/maia-engine.new"
 MAIA_VENV_DIR="$MAIA_REMOTE_DIR/maia-engine-venv"
 MAIA_CACHE_DIR="/var/lib/blog-maia/huggingface"
 MAIA_REQUIREMENTS_HASH_FILE="$MAIA_VENV_DIR/.requirements.sha256"
+API_OVERRIDE_DIR="/etc/systemd/system/${SERVICE_NAME}.d"
+API_OVERRIDE_FILE="$API_OVERRIDE_DIR/20-private-bind.conf"
 
 python_bin=""
 if command -v python3.11 >/dev/null 2>&1; then
@@ -21,6 +23,39 @@ fi
 
 if [ -z "$python_bin" ]; then
   echo "python3.11 or python3 is required on the deploy server"
+  exit 1
+fi
+
+resolve_api_bind_address() {
+  if [ -n "${API_BIND_ADDRESS:-}" ]; then
+    printf '%s\n' "$API_BIND_ADDRESS"
+    return
+  fi
+
+  if ! command -v ip >/dev/null 2>&1; then
+    return 1
+  fi
+
+  default_interface="$(ip -4 route show default | awk 'NR == 1 { print $5 }')"
+  if [ -z "$default_interface" ]; then
+    return 1
+  fi
+
+  ip -o -4 addr show dev "$default_interface" scope global \
+    | awk 'NR == 1 { split($4, address, "/"); print address[1] }'
+}
+
+api_bind_address="$(resolve_api_bind_address || true)"
+if [[ ! "$api_bind_address" =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}$ ]]; then
+  echo "failed to resolve the API server's private IPv4 address"
+  exit 1
+fi
+
+IFS=. read -r api_octet_1 api_octet_2 _ _ <<< "$api_bind_address"
+if ! { [ "$api_octet_1" -eq 10 ] \
+  || { [ "$api_octet_1" -eq 192 ] && [ "$api_octet_2" -eq 168 ]; } \
+  || { [ "$api_octet_1" -eq 172 ] && [ "$api_octet_2" -ge 16 ] && [ "$api_octet_2" -le 31 ]; }; }; then
+  echo "refusing to bind the API to non-private address: $api_bind_address"
   exit 1
 fi
 
@@ -206,6 +241,13 @@ mv "$REMOTE_TMP" "$JAR_NAME"
 chown root:root "$JAR_NAME"
 chmod 0644 "$JAR_NAME"
 
+install -d -m 0755 "$API_OVERRIDE_DIR"
+api_override_tmp="$(mktemp)"
+printf '[Service]\nEnvironment=SERVER_ADDRESS=%s\n' "$api_bind_address" > "$api_override_tmp"
+install -m 0644 "$api_override_tmp" "$API_OVERRIDE_FILE"
+rm -f "$api_override_tmp"
+systemctl daemon-reload
+
 rollback_backend() {
   if [ -n "$backup_path" ] && [ -f "$backup_path" ]; then
     cp "$backup_path" "$JAR_NAME"
@@ -219,7 +261,7 @@ if ! systemctl restart "$SERVICE_NAME"; then
   exit 1
 fi
 
-api_health_url="http://127.0.0.1:8080/actuator/health"
+api_health_url="http://${api_bind_address}:8080/actuator/health"
 api_healthy=0
 for _ in $(seq 1 45); do
   sleep 2

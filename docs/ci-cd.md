@@ -14,6 +14,7 @@
 - Maia 엔진 venv: `/opt/blog-backend/maia-engine-venv`
 - Maia 모델 캐시: `/var/lib/blog-maia/huggingface`
 - Maia 엔진 URL: `http://127.0.0.1:8000`
+- API 바인딩: 배포 시 기본 라우트의 RFC1918 사설 IPv4를 탐지해 해당 주소에만 바인딩 (`API_BIND_ADDRESS`로 명시 가능)
 
 백엔드는 기본값으로 `MAIA_ENGINE_URL=http://localhost:8000`을 사용하므로, Maia 엔진을 같은 서버에서 띄우면 별도 환경변수 없이 연동된다.
 
@@ -30,8 +31,9 @@
 9. `requirements.txt` 해시가 바뀌었으면 캐시 없이 CPU 전용 PyTorch wheel과 Python 의존성 재설치
 10. `maia-engine.service` 설치, `systemctl daemon-reload`, enable, restart
 11. `http://127.0.0.1:8000/health` 헬스체크
-12. Spring Boot jar를 `/root/blog-backend/blog-backend.jar`로 교체
-13. `blog-api.service` 재시작 후 active 상태 확인
+12. 기본 라우트의 사설 IPv4를 탐지하고 systemd override에 해당 주소를 기록
+13. Spring Boot jar를 `/root/blog-backend/blog-backend.jar`로 교체
+14. `blog-api.service` 재시작 후 사설 주소의 actuator health 확인
 
 Maia 엔진 배포 실패 시 이전 Maia 코드 디렉터리로 롤백을 시도한다. 백엔드 jar 재시작 실패 시 직전 jar 백업으로 롤백을 시도한다.
 
