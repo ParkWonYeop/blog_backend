@@ -20,10 +20,9 @@ class CorsConfig(
 
         properties.allowedOrigins.forEach(config::addAllowedOrigin)
 
-        config.addAllowedHeader("*")
-        config.addAllowedMethod("*")
-
-        config.addExposedHeader("Authorization")
+        config.allowedHeaders = listOf("Authorization", "Content-Type", "Accept")
+        config.allowedMethods = listOf("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
+        config.maxAge = 3_600
 
         source.registerCorsConfiguration("/api/**", config)
         source.registerCorsConfiguration("/actuator/health", config)

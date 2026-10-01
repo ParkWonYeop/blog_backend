@@ -1,5 +1,12 @@
 name: Deploy Blog Backend
 
+permissions:
+  contents: read
+
+concurrency:
+  group: blog-backend-production
+  cancel-in-progress: false
+
 on:
   push:
     branches:
@@ -9,44 +16,29 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
 
       - name: Set up Java 21
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3
         with:
           distribution: temurin
           java-version: "21"
 
-      - name: Run backend tests
-        run: ./gradlew test --no-daemon
+      - name: Verify and build backend
+        run: ./gradlew clean check bootJar --no-daemon
 
       - name: Set up Python 3.11
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
         with:
           python-version: "3.11"
 
       - name: Compile Maia engine bridge
         run: python -m py_compile maia-engine/app/main.py
 
-  deploy:
-    runs-on: self-hosted
-    needs: test
-    steps:
-      - name: Check out repository
-        uses: actions/checkout@v4
-
-      - name: Set up Java 21
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: "21"
-
-      - name: Build boot jar
-        run: ./gradlew clean bootJar -x test --no-daemon
-
-      - name: Package Maia engine
+      - name: Package deployment files
         run: |
           set -euo pipefail
           tar \
@@ -54,6 +46,29 @@ jobs:
             --exclude='*.pyc' \
             -czf maia-engine.tar.gz \
             maia-engine
+
+      - name: Upload verified deployment files
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: blog-backend-${{ github.sha }}
+          retention-days: 1
+          if-no-files-found: error
+          path: |
+            build/libs/*.jar
+            maia-engine.tar.gz
+            deploy/deploy.sh
+            deploy/systemd/maia-engine.service
+
+  deploy:
+    runs-on: self-hosted
+    needs: test
+    timeout-minutes: 45
+    environment: production
+    steps:
+      - name: Download verified deployment files
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: blog-backend-${{ github.sha }}
 
       # 러너가 배포 대상 서버에서 직접 실행되므로 SSH 없이 로컬 배포한다.
       - name: Deploy backend and Maia engine
@@ -71,6 +86,7 @@ jobs:
           cp deploy/systemd/maia-engine.service /tmp/maia-engine.service.new
 
           REMOTE_DIR='/root/blog-backend' \
+          MAIA_REMOTE_DIR='/opt/blog-backend' \
           SERVICE_NAME='blog-api.service' \
           MAIA_SERVICE_NAME='maia-engine.service' \
           JAR_NAME='blog-backend.jar' \

@@ -1,5 +1,7 @@
 package me.wypark.blogbackend.domain.post.dto
 
+import jakarta.validation.constraints.NotBlank
+import jakarta.validation.constraints.Size
 import me.wypark.blogbackend.domain.post.entity.Post
 import me.wypark.blogbackend.domain.post.dto.PostSummary
 import java.time.LocalDateTime
@@ -94,9 +96,19 @@ data class PostSummaryResponse(
 }
 
 data class PostSaveRequest(
+    @field:NotBlank(message = "제목은 필수입니다.")
+    @field:Size(max = 200, message = "제목은 200자 이하로 입력해주세요.")
     val title: String,
+
+    @field:NotBlank(message = "본문은 필수입니다.")
+    @field:Size(max = 1_000_000, message = "본문은 1,000,000자 이하로 입력해주세요.")
     val content: String,
+
+    @field:Size(max = 200, message = "슬러그는 200자 이하로 입력해주세요.")
     val slug: String? = null,
+
     val categoryId: Long? = null,
-    val tags: List<String> = emptyList()
+
+    @field:Size(max = 50, message = "태그는 50개 이하로 입력해주세요.")
+    val tags: List<@NotBlank(message = "빈 태그는 사용할 수 없습니다.") @Size(max = 50, message = "태그는 50자 이하로 입력해주세요.") String> = emptyList()
 )

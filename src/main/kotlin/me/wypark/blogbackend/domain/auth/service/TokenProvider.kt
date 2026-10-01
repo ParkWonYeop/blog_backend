@@ -5,6 +5,7 @@ import org.springframework.security.core.Authentication
 
 interface TokenProvider {
     fun generate(authentication: Authentication): TokenDto
-    fun isValid(token: String): Boolean
+    fun isValidAccessToken(token: String): Boolean
+    fun isValidRefreshToken(token: String): Boolean
     fun extractSubject(token: String): String
 }

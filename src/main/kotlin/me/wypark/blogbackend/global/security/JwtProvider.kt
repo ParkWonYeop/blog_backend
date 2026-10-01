@@ -1,7 +1,6 @@
 package me.wypark.blogbackend.global.security
 
 import io.jsonwebtoken.Claims
-import io.jsonwebtoken.ExpiredJwtException
 import io.jsonwebtoken.JwtException
 import io.jsonwebtoken.Jwts
 import io.jsonwebtoken.io.Decoders
@@ -25,6 +24,7 @@ class JwtProvider(
     private val clock: Clock
 ) : TokenProvider {
     private val signingKey: SecretKey = Keys.hmacShaKeyFor(Decoders.BASE64.decode(properties.secret))
+    private val jwtClock = io.jsonwebtoken.Clock { Date(clock.millis()) }
 
     override fun generate(authentication: Authentication): TokenDto {
         val principal = authentication.principal as AuthenticatedUser
@@ -33,6 +33,8 @@ class JwtProvider(
 
         val accessToken = Jwts.builder()
             .subject(authentication.name)
+            .issuedAt(Date(issuedAt))
+            .claim(TOKEN_TYPE_CLAIM, ACCESS_TOKEN_TYPE)
             .claim(AUTHORITIES_CLAIM, authentication.authorities.joinToString(",") { it.authority })
             .claim(MEMBER_ID_CLAIM, principal.memberId)
             .claim(NICKNAME_CLAIM, principal.nickname)
@@ -42,6 +44,8 @@ class JwtProvider(
 
         val refreshToken = Jwts.builder()
             .subject(authentication.name)
+            .issuedAt(Date(issuedAt))
+            .claim(TOKEN_TYPE_CLAIM, REFRESH_TOKEN_TYPE)
             .expiration(Date(issuedAt + properties.refreshTokenValidity))
             .signWith(signingKey)
             .compact()
@@ -55,6 +59,7 @@ class JwtProvider(
 
     fun getAuthentication(accessToken: String): Authentication {
         val claims = parseClaims(accessToken)
+        require(claims[TOKEN_TYPE_CLAIM] == ACCESS_TOKEN_TYPE) { "Access Token이 아닙니다." }
         val authorityClaim = claims[AUTHORITIES_CLAIM]
             ?: throw IllegalArgumentException("권한 정보가 없는 토큰입니다.")
         val authorities: Collection<GrantedAuthority> = authorityClaim.toString()
@@ -75,10 +80,13 @@ class JwtProvider(
         return UsernamePasswordAuthenticationToken(principal, "", authorities)
     }
 
-    override fun isValid(token: String): Boolean {
+    override fun isValidAccessToken(token: String): Boolean = isValid(token, ACCESS_TOKEN_TYPE)
+
+    override fun isValidRefreshToken(token: String): Boolean = isValid(token, REFRESH_TOKEN_TYPE)
+
+    private fun isValid(token: String, expectedType: String): Boolean {
         return try {
-            Jwts.parser().verifyWith(signingKey).build().parseSignedClaims(token)
-            true
+            parseClaims(token)[TOKEN_TYPE_CLAIM] == expectedType
         } catch (_: JwtException) {
             false
         } catch (_: IllegalArgumentException) {
@@ -88,14 +96,13 @@ class JwtProvider(
 
     override fun extractSubject(token: String): String = parseClaims(token).subject
 
-    private fun parseClaims(accessToken: String): Claims {
-        return try {
-            Jwts.parser().verifyWith(signingKey).build().parseSignedClaims(accessToken).payload
-        } catch (exception: ExpiredJwtException) {
-            exception.claims
-        }
-    }
+    private fun parseClaims(token: String): Claims =
+        Jwts.parser().clock(jwtClock).verifyWith(signingKey).build().parseSignedClaims(token).payload
+
     companion object {
+        private const val TOKEN_TYPE_CLAIM = "token_type"
+        private const val ACCESS_TOKEN_TYPE = "access"
+        private const val REFRESH_TOKEN_TYPE = "refresh"
         private const val AUTHORITIES_CLAIM = "auth"
         private const val MEMBER_ID_CLAIM = "memberId"
         private const val NICKNAME_CLAIM = "nickname"

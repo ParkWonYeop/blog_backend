@@ -1,6 +1,9 @@
 package me.wypark.blogbackend.global.config
 
+import jakarta.validation.Valid
+import jakarta.validation.constraints.NotBlank
 import org.springframework.boot.context.properties.ConfigurationProperties
+import org.springframework.validation.annotation.Validated
 
 @ConfigurationProperties("jwt")
 data class JwtProperties(
@@ -15,14 +18,20 @@ data class CorsProperties(
 )
 
 @ConfigurationProperties("spring.cloud.aws")
+@Validated
 data class AwsProperties(
+    @field:Valid
     val credentials: Credentials = Credentials(),
+    @field:Valid
     val region: AwsRegion = AwsRegion(),
+    @field:Valid
     val s3: S3 = S3()
 ) {
     data class Credentials(
-        val accessKey: String = "admin",
-        val secretKey: String = "password"
+        @field:NotBlank
+        val accessKey: String = "",
+        @field:NotBlank
+        val secretKey: String = ""
     )
 
     data class AwsRegion(
@@ -30,7 +39,9 @@ data class AwsProperties(
     )
 
     data class S3(
+        @field:NotBlank
         val endpoint: String = "http://minio:9000",
+        @field:NotBlank
         val bucket: String = "blog-images"
     )
 }

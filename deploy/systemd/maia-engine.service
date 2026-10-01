@@ -5,15 +5,15 @@ Wants=network-online.target
 
 [Service]
 Type=simple
-User=root
-Group=root
-WorkingDirectory=/root/blog-backend/maia-engine
+User=blog-maia
+Group=blog-maia
+WorkingDirectory=/opt/blog-backend/maia-engine
 Environment=MAIA_MODEL=maia3-23m
 Environment=MAIA_DEVICE=cpu
 Environment=MAIA_USE_AMP=false
-Environment=HF_HOME=/root/blog-backend/.cache/huggingface
+Environment=HF_HOME=/var/lib/blog-maia/huggingface
 Environment=PYTHONUNBUFFERED=1
-Environment=PATH=/root/blog-backend/maia-engine-venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+Environment=PATH=/opt/blog-backend/maia-engine-venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 # 엔진 프로세스 수/유휴 회수: 모델당 torch 프로세스가 하나씩 뜨므로 2개 이상은 메모리를 곱으로 먹는다.
 Environment=MAIA_MAX_ENGINES=2
 Environment=MAIA_ENGINE_IDLE_SECONDS=900
@@ -21,7 +21,7 @@ Environment=MAIA_ENGINE_WAIT_SECONDS=30
 # torch CPU 스레드 상한. 없으면 추론 한 번에 모든 코어를 점유해 blog-api 응답이 같이 느려진다.
 Environment=OMP_NUM_THREADS=2
 Environment=MKL_NUM_THREADS=2
-ExecStart=/root/blog-backend/maia-engine-venv/bin/python -m uvicorn app.main:app --host 127.0.0.1 --port 8000
+ExecStart=/opt/blog-backend/maia-engine-venv/bin/python -m uvicorn app.main:app --host 127.0.0.1 --port 8000
 Restart=always
 RestartSec=5
 TimeoutStartSec=300
@@ -33,6 +33,21 @@ MemoryMax=3G
 CPUQuota=200%
 TasksMax=256
 Nice=5
+UMask=0027
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+CapabilityBoundingSet=
+AmbientCapabilities=
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+ReadWritePaths=/var/lib/blog-maia
 
 [Install]
 WantedBy=multi-user.target

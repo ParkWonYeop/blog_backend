@@ -3,18 +3,28 @@ services:
     build: .
     container_name: blog-api
     restart: always
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 256
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=64m
     ports:
-      - "8080:8080"
+      - "127.0.0.1:8080:8080"
     environment:
       - SPRING_DATASOURCE_URL=db:5432/blog_db
       - SPRING_DATASOURCE_USERNAME=${DB_USER}
       - SPRING_DATASOURCE_PASSWORD=${DB_PASS}
       - JWT_SECRET=${JWT_SECRET}
+      - SERVER_ADDRESS=0.0.0.0
       - MAIA_ENGINE_URL=http://maia-engine:8000
       - SPRING_DATA_REDIS_HOST=redis
       - SPRING_DATA_REDIS_PORT=6379
-      - SPRING_CLOUD_AWS_CREDENTIALS_ACCESS_KEY=${MINIO_ROOT_USER:-admin}
-      - SPRING_CLOUD_AWS_CREDENTIALS_SECRET_KEY=${MINIO_ROOT_PASSWORD:-password}
+      - SPRING_DATA_REDIS_PASSWORD=${REDIS_PASSWORD:?REDIS_PASSWORD must be set}
+      - SPRING_CLOUD_AWS_CREDENTIALS_ACCESS_KEY=${MINIO_ROOT_USER:?MINIO_ROOT_USER must be set}
+      - SPRING_CLOUD_AWS_CREDENTIALS_SECRET_KEY=${MINIO_ROOT_PASSWORD:?MINIO_ROOT_PASSWORD must be set}
       - SPRING_CLOUD_AWS_REGION_STATIC=ap-northeast-2
       - SPRING_CLOUD_AWS_S3_ENDPOINT=http://minio:9000
       - SPRING_MAIL_HOST=smtp.gmail.com
@@ -41,6 +51,14 @@ services:
     build: ./maia-engine
     container_name: maia-engine
     restart: always
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 256
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=256m
     environment:
       - MAIA_MODEL=maia3-23m
       - MAIA_DEVICE=cpu
@@ -69,7 +87,7 @@ services:
     container_name: blog-db
     restart: always
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     environment:
       POSTGRES_USER: ${DB_USER}
       POSTGRES_PASSWORD: ${DB_PASS}
@@ -87,6 +105,10 @@ services:
     image: redis:7-alpine
     container_name: blog-redis
     restart: always
+    command: ["sh", "-c", "exec redis-server --requirepass \"$${REDIS_PASSWORD}\""]
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?REDIS_PASSWORD must be set}
+      REDISCLI_AUTH: ${REDIS_PASSWORD:?REDIS_PASSWORD must be set}
     healthcheck:
       test: [ "CMD", "redis-cli", "ping" ]
       interval: 5s
@@ -98,11 +120,11 @@ services:
     image: minio/minio
     container_name: minio
     ports:
-      - "9000:9000"
-      - "9001:9001"
+      - "127.0.0.1:9000:9000"
+      - "127.0.0.1:9001:9001"
     environment:
-      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-admin}
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-password}
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:?MINIO_ROOT_USER must be set}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?MINIO_ROOT_PASSWORD must be set}
     command: server /data --console-address ":9001"
     volumes:
       - ./minio_data:/data

@@ -1,5 +1,6 @@
 package me.wypark.blogbackend.domain.profile.controller
 
+import jakarta.validation.Valid
 import me.wypark.blogbackend.global.common.ApiResponse
 import me.wypark.blogbackend.domain.profile.service.BlogProfileService
 import me.wypark.blogbackend.domain.profile.dto.ProfileUpdateRequest
@@ -16,7 +17,7 @@ class AdminProfileController(
 ) {
 
     @PutMapping
-    fun updateProfile(@RequestBody request: ProfileUpdateRequest): ResponseEntity<ApiResponse<Nothing>> {
+    fun updateProfile(@RequestBody @Valid request: ProfileUpdateRequest): ResponseEntity<ApiResponse<Nothing>> {
         blogProfileService.updateProfile(request)
         return ResponseEntity.ok(ApiResponse.success(message = "프로필이 수정되었습니다."))
     }

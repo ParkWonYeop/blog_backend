@@ -31,6 +31,7 @@ class PostService(
     private val tagRepository: TagRepository,
     private val imageService: ImageService,
     private val postViewCounter: PostViewCounter,
+    private val postViewGuard: PostViewGuard,
     private val clock: Clock
 ) {
 
@@ -39,14 +40,17 @@ class PostService(
     }
 
     @Transactional
-    fun getPostBySlug(slug: String): PostResponse {
-        postRepository.incrementViewCountBySlug(slug)
-        val post = postRepository.findBySlug(slug)
+    fun getPostBySlug(slug: String, viewerId: String): PostResponse {
+        var post = postRepository.findBySlug(slug)
             ?: throw BusinessException.notFound("해당 게시글을 찾을 수 없습니다: $slug")
         val postId = requireNotNull(post.id) { "Persisted post must have an id" }
 
         val viewDate = LocalDate.now(clock.withZone(KOREA_ZONE_ID))
-        postViewCounter.increment(postId, viewDate)
+        if (postViewGuard.shouldCount(postId, viewDate, viewerId)) {
+            postRepository.incrementViewCountBySlug(slug)
+            postViewCounter.increment(postId, viewDate)
+            post = postRepository.findBySlug(slug) ?: post
+        }
 
         val previous = postRepository.findFirstByIdLessThanOrderByIdDesc(postId)
         val next = postRepository.findFirstByIdGreaterThanOrderByIdAsc(postId)

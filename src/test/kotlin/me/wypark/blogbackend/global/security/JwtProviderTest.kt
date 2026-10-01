@@ -9,7 +9,9 @@ import java.time.Clock
 import java.time.Instant
 import java.time.ZoneOffset
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertIs
+import kotlin.test.assertTrue
 
 class JwtProviderTest {
 
@@ -46,5 +48,9 @@ class JwtProviderTest {
         assertEquals("tester", principal.nickname)
         assertEquals("tester@example.com", principal.username)
         assertEquals("ROLE_ADMIN", authentication.authorities.single().authority)
+        assertTrue(jwtProvider.isValidAccessToken(token.accessToken))
+        assertTrue(jwtProvider.isValidRefreshToken(token.refreshToken))
+        assertFalse(jwtProvider.isValidRefreshToken(token.accessToken))
+        assertFalse(jwtProvider.isValidAccessToken(token.refreshToken))
     }
 }

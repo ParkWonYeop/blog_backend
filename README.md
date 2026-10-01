@@ -26,7 +26,7 @@ Maia 기반 체스 대국을 하나의 백엔드로 제공합니다.
 | 영역 | 기술 |
 | --- | --- |
 | Language | Java 21, Kotlin 1.9.25 |
-| Framework | Spring Boot 3.5.9, Spring MVC, Spring Security |
+| Framework | Spring Boot 3.5.16, Spring MVC, Spring Security |
 | Persistence | Spring Data JPA, QueryDSL, JDBC, Flyway |
 | Storage | PostgreSQL 17, Redis 7, S3/MinIO |
 | Authentication | JWT, BCrypt, Redis Refresh Token Store |
@@ -208,8 +208,8 @@ curl -X POST http://localhost:8080/api/admin/posts \
 | --- | --- | --- | --- |
 | `POST` | `/api/auth/signup` | 공개 | 회원가입 및 인증 메일 발송 |
 | `POST` | `/api/auth/verify` | 공개 | 이메일 인증 |
-| `POST` | `/api/auth/login` | 공개 | Access/Refresh Token 발급 |
-| `POST` | `/api/auth/reissue` | 공개 | 토큰 재발급 및 Rotation |
+| `POST` | `/api/auth/login` | 공개 | Access Token 응답과 HttpOnly Refresh 쿠키 발급 |
+| `POST` | `/api/auth/reissue` | 공개 | 쿠키 기반 토큰 재발급 및 Rotation |
 | `POST` | `/api/auth/logout` | 로그인 | Refresh Token 삭제 |
 | `GET` | `/api/posts` | 공개 | 게시글 목록·검색 |
 | `GET` | `/api/posts/{slug}` | 공개 | 상세 조회 및 조회수 증가 |
@@ -268,7 +268,7 @@ curl -X POST http://localhost:8080/api/admin/posts \
 | `JWT_SECRET` | 전체 | Base64 인코딩된 JWT HMAC 키 |
 | `MAIL_USER`, `MAIL_PASS` | Docker Compose | SMTP 계정과 앱 비밀번호 |
 | `MAIL_USERNAME`, `MAIL_PASSWORD` | 운영 | SMTP 인증 정보 |
-| `REDIS_HOST` | 운영 | Redis 호스트 |
+| `REDIS_HOST`, `REDIS_PASSWORD` | 운영 | Redis 호스트와 인증 비밀번호 |
 | `MAIA_ENGINE_URL` | 운영 | Maia FastAPI 서비스 주소, 기본값 `http://localhost:8000` |
 | `MAIA_GAME_SESSION_TTL` | 운영 | Redis 게임 세션 TTL, 기본값 `PT6H` |
 | `MAIA_MAX_ENGINES` | Maia 엔진 | 동시에 유지할 `maia3-uci` 프로세스 수, 기본값 `2` (모델별로 프로세스가 하나씩 뜨며 LRU로 퇴출) |
@@ -276,7 +276,7 @@ curl -X POST http://localhost:8080/api/admin/posts \
 | `MAIA_ENGINE_WAIT_SECONDS` | Maia 엔진 | 엔진이 바쁠 때 요청이 기다리는 최대 시간, 초과 시 503, 기본값 `30` |
 | `OMP_NUM_THREADS` | Maia 엔진 | 추론에 쓸 CPU 스레드 수. systemd 유닛과 Compose는 `2`로 고정 |
 | `S3_ACCESS_KEY`, `S3_SECRET_KEY` | 운영 | S3 호환 저장소 인증 정보 |
-| `MINIO_ROOT_USER`, `MINIO_ROOT_PASSWORD` | 로컬 | MinIO 관리자 계정 |
+| `MINIO_ROOT_USER`, `MINIO_ROOT_PASSWORD` | 로컬 | 필수 MinIO 관리자 계정(기본값 없음) |
 
 운영 설정은 [`application-prod.yml`](src/main/resources/application-prod.yml), 테스트 설정은
 [`application-test.yml`](src/test/resources/application-test.yml)에 있습니다. CI/CD와 서버 배포 흐름은

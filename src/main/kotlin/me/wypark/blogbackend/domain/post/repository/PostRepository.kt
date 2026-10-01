@@ -23,7 +23,7 @@ interface PostRepository : JpaRepository<Post, Long>, PostRepositoryCustom {
     @Query("UPDATE Post p SET p.category = null WHERE p.category IN :categories")
     fun bulkUpdateCategoryToNull(@Param("categories") categories: List<Category>)
 
-    @Modifying
+    @Modifying(clearAutomatically = true)
     @Query("UPDATE Post p SET p.viewCount = p.viewCount + 1 WHERE p.slug = :slug")
     fun incrementViewCountBySlug(@Param("slug") slug: String)
 

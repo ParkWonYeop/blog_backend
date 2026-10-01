@@ -29,6 +29,7 @@ class AuthService(
 
     @Transactional
     fun signup(request: SignupRequest) {
+        validatePasswordLength(request.password)
         validateUniqueMember(request)
         memberRepository.save(
             Member(
@@ -44,6 +45,7 @@ class AuthService(
 
     @Transactional
     fun login(request: LoginRequest): TokenDto {
+        validatePasswordLength(request.password)
         val authentication = try {
             authenticationManager.authenticate(
                 UsernamePasswordAuthenticationToken(request.email, request.password)
@@ -65,14 +67,12 @@ class AuthService(
 
     @Transactional
     fun reissue(refreshToken: String): TokenDto {
-        if (!tokenProvider.isValid(refreshToken)) {
+        if (!tokenProvider.isValidRefreshToken(refreshToken)) {
             throw BusinessException("유효하지 않은 Refresh Token입니다.")
         }
 
         val email = tokenProvider.extractSubject(refreshToken)
-        val savedToken = refreshTokenStore.findByEmail(email)
-            ?: throw BusinessException("로그아웃 된 사용자입니다.")
-        if (savedToken != refreshToken) {
+        if (!refreshTokenStore.matches(email, refreshToken)) {
             refreshTokenStore.delete(email)
             throw BusinessException("토큰 정보가 일치하지 않습니다. (재사용 감지됨)")
         }
@@ -113,5 +113,15 @@ class AuthService(
         if (memberRepository.existsByNickname(request.nickname)) {
             throw BusinessException("이미 사용 중인 닉네임입니다.")
         }
+    }
+
+    private fun validatePasswordLength(password: String) {
+        if (password.toByteArray(Charsets.UTF_8).size > BCRYPT_MAX_BYTES) {
+            throw BusinessException("비밀번호는 UTF-8 기준 72바이트 이하로 입력해주세요.")
+        }
+    }
+
+    companion object {
+        private const val BCRYPT_MAX_BYTES = 72
     }
 }

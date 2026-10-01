@@ -1,5 +1,6 @@
 package me.wypark.blogbackend.domain.category.controller
 
+import jakarta.validation.Valid
 import me.wypark.blogbackend.global.common.ApiResponse
 import me.wypark.blogbackend.domain.category.dto.CategoryCreateRequest
 import me.wypark.blogbackend.domain.category.service.CategoryService
@@ -20,7 +21,7 @@ class AdminCategoryController(
 ) {
 
     @PostMapping
-    fun createCategory(@RequestBody request: CategoryCreateRequest): ResponseEntity<ApiResponse<Long>> {
+    fun createCategory(@RequestBody @Valid request: CategoryCreateRequest): ResponseEntity<ApiResponse<Long>> {
         val id = categoryService.createCategory(request)
         return ResponseEntity.ok(ApiResponse.success(id, "카테고리가 생성되었습니다."))
     }
@@ -28,7 +29,7 @@ class AdminCategoryController(
     @PutMapping("/{id}")
     fun updateCategory(
         @PathVariable id: Long,
-        @RequestBody request: CategoryUpdateRequest
+        @RequestBody @Valid request: CategoryUpdateRequest
     ): ResponseEntity<ApiResponse<Nothing>> {
         categoryService.updateCategory(id, request)
         return ResponseEntity.ok(ApiResponse.success(message = "카테고리가 수정되었습니다."))

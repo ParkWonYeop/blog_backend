@@ -3,10 +3,13 @@ set -euo pipefail
 
 mkdir -p "$REMOTE_DIR"
 
-MAIA_DIR="$REMOTE_DIR/maia-engine"
-MAIA_NEW_DIR="$REMOTE_DIR/maia-engine.new"
-MAIA_VENV_DIR="$REMOTE_DIR/maia-engine-venv"
-MAIA_CACHE_DIR="$REMOTE_DIR/.cache/huggingface"
+MAIA_REMOTE_DIR="${MAIA_REMOTE_DIR:-$REMOTE_DIR}"
+mkdir -p "$MAIA_REMOTE_DIR"
+
+MAIA_DIR="$MAIA_REMOTE_DIR/maia-engine"
+MAIA_NEW_DIR="$MAIA_REMOTE_DIR/maia-engine.new"
+MAIA_VENV_DIR="$MAIA_REMOTE_DIR/maia-engine-venv"
+MAIA_CACHE_DIR="/var/lib/blog-maia/huggingface"
 MAIA_REQUIREMENTS_HASH_FILE="$MAIA_VENV_DIR/.requirements.sha256"
 
 python_bin=""
@@ -20,6 +23,11 @@ if [ -z "$python_bin" ]; then
   echo "python3.11 or python3 is required on the deploy server"
   exit 1
 fi
+
+if ! id -u blog-maia >/dev/null 2>&1; then
+  useradd --system --home-dir /var/lib/blog-maia --create-home --shell /usr/sbin/nologin blog-maia
+fi
+install -d -o blog-maia -g blog-maia -m 0750 /var/lib/blog-maia "$MAIA_CACHE_DIR"
 
 install_apt_package() {
   package_name="$1"
@@ -86,6 +94,8 @@ if [ -d "$MAIA_DIR" ]; then
   mv "$MAIA_DIR" "$maia_backup_path"
 fi
 mv "$MAIA_NEW_DIR" "$MAIA_DIR"
+chown -R root:blog-maia "$MAIA_DIR"
+chmod -R g=rX,o= "$MAIA_DIR"
 
 rollback_maia() {
   if [ -n "$maia_backup_path" ] && [ -d "$maia_backup_path" ]; then

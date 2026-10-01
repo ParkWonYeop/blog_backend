@@ -39,6 +39,7 @@ class ChessWebSocketHandler(
     private val decorated = ConcurrentHashMap<String, WebSocketSession>()
     private val pendingSince = ConcurrentHashMap<String, Instant>()
     private val players = ConcurrentHashMap<String, OnlinePlayer>()
+    private val messageWindows = ConcurrentHashMap<String, MessageWindow>()
 
     override fun afterConnectionEstablished(session: WebSocketSession) {
         decorated[session.id] = registry.decorate(session)
@@ -47,6 +48,16 @@ class ChessWebSocketHandler(
 
     override fun handleTextMessage(session: WebSocketSession, message: TextMessage) {
         val socket = decorated[session.id] ?: return
+        if (message.payloadLength > ChessWebSocketConfig.MAX_MESSAGE_BYTES) {
+            registry.sendTo(socket, ErrorMessage("메시지가 너무 큽니다.", "MESSAGE_TOO_LARGE"))
+            closeQuietly(socket, CloseStatus.TOO_BIG_TO_PROCESS)
+            return
+        }
+        if (!allowMessage(session.id)) {
+            registry.sendTo(socket, ErrorMessage("메시지 요청이 너무 많습니다.", "RATE_LIMITED"))
+            closeQuietly(socket, CloseStatus.POLICY_VIOLATION)
+            return
+        }
         val request = try {
             objectMapper.readValue(message.payload, OnlineClientMessage::class.java)
         } catch (e: Exception) {
@@ -78,6 +89,7 @@ class ChessWebSocketHandler(
         decorated.remove(session.id)
         pendingSince.remove(session.id)
         players.remove(session.id)
+        messageWindows.remove(session.id)
         val memberId = registry.unregister(session) ?: return
         try {
             onlineGameService.onDisconnected(memberId)
@@ -103,7 +115,7 @@ class ChessWebSocketHandler(
     }
 
     private fun authenticate(session: WebSocketSession, socket: WebSocketSession, token: String?) {
-        if (token.isNullOrBlank() || !jwtProvider.isValid(token)) {
+        if (token.isNullOrBlank() || !jwtProvider.isValidAccessToken(token)) {
             registry.sendTo(socket, ErrorMessage("인증에 실패했습니다.", "UNAUTHORIZED"))
             closeQuietly(socket, CloseStatus.POLICY_VIOLATION)
             return
@@ -154,6 +166,7 @@ class ChessWebSocketHandler(
 
     private fun requireField(value: String?, name: String): String {
         if (value.isNullOrBlank()) throw IllegalArgumentException("$name 값이 필요합니다.")
+        if (value.length > MAX_FIELD_LENGTH) throw IllegalArgumentException("$name 값이 너무 깁니다.")
         return value
     }
 
@@ -165,7 +178,27 @@ class ChessWebSocketHandler(
         }
     }
 
+    private fun allowMessage(sessionId: String): Boolean {
+        val now = clock.millis()
+        var allowed = true
+        messageWindows.compute(sessionId) { _, current ->
+            if (current == null || now - current.startedAt >= MESSAGE_WINDOW_MS) {
+                MessageWindow(now, 1)
+            } else {
+                current.count += 1
+                allowed = current.count <= MAX_MESSAGES_PER_WINDOW
+                current
+            }
+        }
+        return allowed
+    }
+
+    private data class MessageWindow(val startedAt: Long, var count: Int)
+
     companion object {
         private val AUTH_TIMEOUT: Duration = Duration.ofSeconds(10)
+        private const val MESSAGE_WINDOW_MS = 10_000L
+        private const val MAX_MESSAGES_PER_WINDOW = 60
+        private const val MAX_FIELD_LENGTH = 128
     }
 }

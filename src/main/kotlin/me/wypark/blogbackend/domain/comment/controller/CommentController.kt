@@ -1,5 +1,7 @@
 package me.wypark.blogbackend.domain.comment.controller
 
+import jakarta.validation.Valid
+import jakarta.validation.constraints.Size
 import me.wypark.blogbackend.global.common.ApiResponse
 import me.wypark.blogbackend.domain.comment.dto.CommentDeleteRequest
 import me.wypark.blogbackend.domain.comment.dto.CommentResponse
@@ -16,21 +18,25 @@ import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
+import org.springframework.validation.annotation.Validated
 
 @RestController
 @RequestMapping("/api/comments")
+@Validated
 class CommentController(
     private val commentService: CommentService
 ) {
 
     @GetMapping
-    fun getComments(@RequestParam postSlug: String): ResponseEntity<ApiResponse<List<CommentResponse>>> {
+    fun getComments(
+        @RequestParam @Size(max = 200) postSlug: String
+    ): ResponseEntity<ApiResponse<List<CommentResponse>>> {
         return ResponseEntity.ok(ApiResponse.success(commentService.getComments(postSlug)))
     }
 
     @PostMapping
     fun createComment(
-        @RequestBody request: CommentSaveRequest,
+        @RequestBody @Valid request: CommentSaveRequest,
         @AuthenticationPrincipal user: User?
     ): ResponseEntity<ApiResponse<Long>> {
         val email = user?.username
@@ -41,7 +47,7 @@ class CommentController(
     @DeleteMapping("/{id}")
     fun deleteComment(
         @PathVariable id: Long,
-        @RequestBody(required = false) request: CommentDeleteRequest?,
+        @RequestBody(required = false) @Valid request: CommentDeleteRequest?,
         @AuthenticationPrincipal user: User?
     ): ResponseEntity<ApiResponse<Nothing>> {
         val email = user?.username

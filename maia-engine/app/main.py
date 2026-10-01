@@ -48,10 +48,10 @@ engines: dict[str, LoadedEngine] = {}
 
 
 class StateRequest(BaseModel):
-    moves: list[str] = Field(default_factory=list)
-    white: str | None = None
-    black: str | None = None
-    event: str = "Maia3"
+    moves: list[str] = Field(default_factory=list, max_length=600)
+    white: str | None = Field(default=None, max_length=100)
+    black: str | None = Field(default=None, max_length=100)
+    event: str = Field(default="Maia3", max_length=100)
 
 
 class PlayRequest(StateRequest):

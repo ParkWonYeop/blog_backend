@@ -7,6 +7,7 @@ import jakarta.validation.constraints.Size
 data class SignupRequest(
     @field:NotBlank(message = "이메일은 필수입니다.")
     @field:Email(message = "올바른 이메일 형식이 아닙니다.")
+    @field:Size(max = 254, message = "이메일은 254자 이하로 입력해주세요.")
     val email: String,
 
     @field:NotBlank(message = "비밀번호는 필수입니다.")
@@ -20,14 +21,20 @@ data class SignupRequest(
 
 data class LoginRequest(
     @field:NotBlank(message = "이메일을 입력해주세요.")
+    @field:Email(message = "올바른 이메일 형식이 아닙니다.")
+    @field:Size(max = 254, message = "이메일은 254자 이하로 입력해주세요.")
     val email: String,
     @field:NotBlank(message = "비밀번호를 입력해주세요.")
+    @field:Size(max = 128, message = "비밀번호가 너무 깁니다.")
     val password: String
 )
 
 data class VerifyEmailRequest(
     @field:NotBlank(message = "이메일을 입력해주세요")
+    @field:Email(message = "올바른 이메일 형식이 아닙니다.")
+    @field:Size(max = 254, message = "이메일은 254자 이하로 입력해주세요.")
     val email: String,
     @field:NotBlank(message = "인증 코드를 입력해주세요")
+    @field:jakarta.validation.constraints.Pattern(regexp = "^[0-9]{6}$", message = "인증 코드는 숫자 6자리여야 합니다.")
     val code: String
 )

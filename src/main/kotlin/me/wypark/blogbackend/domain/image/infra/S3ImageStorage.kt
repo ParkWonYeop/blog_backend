@@ -24,7 +24,7 @@ class S3ImageStorage(
         if (imageProperties.initializeBucket) createBucketIfMissing()
     }
 
-    override fun upload(key: String, contentType: String?, size: Long, content: InputStream): String {
+    override fun upload(key: String, contentType: String, size: Long, content: InputStream): String {
         val request = PutObjectRequest.builder()
             .bucket(bucket)
             .key(key)

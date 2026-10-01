@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import jakarta.servlet.http.HttpServletResponse
 import me.wypark.blogbackend.global.common.ApiResponse
 import me.wypark.blogbackend.global.security.JwtAuthenticationFilter
+import me.wypark.blogbackend.global.security.RequestRateLimitFilter
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.http.HttpMethod
@@ -23,6 +24,7 @@ import java.nio.charset.StandardCharsets
 @EnableWebSecurity
 class SecurityConfig(
     private val corsFilter: CorsFilter,
+    private val requestRateLimitFilter: RequestRateLimitFilter,
     private val jwtAuthenticationFilter: JwtAuthenticationFilter,
     private val objectMapper: ObjectMapper
 ) {
@@ -40,6 +42,7 @@ class SecurityConfig(
             .formLogin { it.disable() }
 
             .addFilter(corsFilter)
+            .addFilterAfter(requestRateLimitFilter, CorsFilter::class.java)
 
             .sessionManagement {
                 it.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
@@ -64,7 +67,14 @@ class SecurityConfig(
             }
 
             .authorizeHttpRequests { auth ->
-                auth.requestMatchers("/api/auth/**").permitAll()
+                auth.requestMatchers(
+                    HttpMethod.POST,
+                    "/api/auth/signup",
+                    "/api/auth/verify",
+                    "/api/auth/login",
+                    "/api/auth/reissue"
+                ).permitAll()
+                auth.requestMatchers(HttpMethod.POST, "/api/auth/logout").authenticated()
                 auth.requestMatchers(HttpMethod.GET, "/actuator/health").permitAll()
                 // WebSocket 핸드셰이크는 열어 두고, 연결 후 첫 AUTH 메시지의 JWT로 인증한다.
                 auth.requestMatchers("/ws/**").permitAll()

@@ -2,7 +2,7 @@ package me.wypark.blogbackend.domain.auth.service
 
 interface RefreshTokenStore {
     fun save(email: String, refreshToken: String)
-    fun findByEmail(email: String): String?
+    fun matches(email: String, refreshToken: String): Boolean
     fun delete(email: String)
 }
 

@@ -17,4 +17,8 @@ class ChessWebSocketConfig(
         registry.addHandler(handler, "/ws/chess")
             .setAllowedOrigins(*corsProperties.allowedOrigins.toTypedArray())
     }
+
+    companion object {
+        const val MAX_MESSAGE_BYTES = 8 * 1024
+    }
 }

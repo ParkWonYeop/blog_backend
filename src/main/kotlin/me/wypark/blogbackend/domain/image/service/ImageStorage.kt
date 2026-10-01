@@ -3,6 +3,6 @@ package me.wypark.blogbackend.domain.image.service
 import java.io.InputStream
 
 interface ImageStorage {
-    fun upload(key: String, contentType: String?, size: Long, content: InputStream): String
+    fun upload(key: String, contentType: String, size: Long, content: InputStream): String
     fun delete(key: String)
 }
