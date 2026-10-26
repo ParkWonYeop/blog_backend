@@ -32,8 +32,8 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-data-redis")
     implementation("org.springframework.boot:spring-boot-starter-validation")
     implementation("org.springframework.boot:spring-boot-starter-mail")
-    implementation("io.modelcontextprotocol.sdk:mcp-spring-webmvc:0.18.3")
-    implementation("io.modelcontextprotocol.sdk:mcp-json-jackson2:0.18.3")
+    implementation("io.modelcontextprotocol.sdk:mcp-spring-webmvc:0.18.5")
+    implementation("io.modelcontextprotocol.sdk:mcp-json-jackson2:0.18.5")
     implementation("org.flywaydb:flyway-core")
     implementation("org.flywaydb:flyway-database-postgresql")
     implementation("io.github.cdimascio:dotenv-java:3.0.0")
@@ -41,12 +41,12 @@ dependencies {
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
     implementation("org.jetbrains.kotlin:kotlin-reflect")
 
-    runtimeOnly("org.postgresql:postgresql")
+    runtimeOnly("org.postgresql:postgresql:42.7.14")
 
     implementation("io.awspring.cloud:spring-cloud-aws-starter-s3:$springCloudAwsVersion")
 
-    implementation("com.querydsl:querydsl-jpa:5.1.0:jakarta")
-    kapt("com.querydsl:querydsl-apt:5.1.0:jakarta")
+    implementation("io.github.openfeign.querydsl:querydsl-jpa:5.6.1:jakarta")
+    kapt("io.github.openfeign.querydsl:querydsl-apt:5.6.1:jakarta")
     kapt("jakarta.persistence:jakarta.persistence-api")
     kapt("jakarta.annotation:jakarta.annotation-api")
 

@@ -206,7 +206,7 @@ curl -X POST http://localhost:8080/api/admin/posts \
 
 관리자 화면의 **MCP 연결**(`/admin/mcp`)에서 연결 키를 발급하면 Codex·Claude Code 등에서 블로그를
 관리할 수 있습니다. 서버 주소는 `https://blogserver.wypark.me/api/admin/mcp`이며 로컬에서는
-`http://localhost:8080/api/admin/mcp`를 사용합니다. 공식 MCP Java SDK 0.18.3의 stateless Streamable HTTP
+`http://localhost:8080/api/admin/mcp`를 사용합니다. 공식 MCP Java SDK 0.18.5의 stateless Streamable HTTP
 전송을 사용하며 `2025-03-26`, `2025-06-18`, `2025-11-25` 프로토콜을 지원합니다.
 
 ### 연결 키
@@ -288,6 +288,14 @@ MCP 응답만 표준 JSON-RPC 형식을 사용하고 기존 REST API의 `ApiResp
 리버스 프록시는 MCP 경로의 POST, Authorization, Accept, MCP-Protocol-Version 헤더를 전달해야 합니다.
 허용 Origin은 기존 `blog.cors.allowed-origins` 설정을 따릅니다. 브라우저 기반 클라이언트에서 필요한
 Origin만 추가하세요. 이 연결은 Bearer 키를 지원하는 클라이언트용이며 OAuth 로그인은 제공하지 않습니다.
+요청 빈도 제한은 `remoteAddr`를 기준으로 하므로, 운영 프록시는 외부에서 받은 `Forwarded`와
+`X-Forwarded-For`를 신뢰하지 말고 실제 접속 IP로 덮어써야 합니다. API 서버도 신뢰하는 프록시만
+접속할 수 있게 유지해야 합니다. 그렇지 않으면 제한을 우회하거나 여러 사용자가 한 제한을 공유할 수 있습니다.
+
+[MCP SDK의 요청 크기 보안 수정](https://github.com/modelcontextprotocol/java-sdk/security/advisories/GHSA-4x8c-5vv7-973f)을
+포함한 버전을 사용합니다. 이 프로젝트의 WebMVC 전송은 요청 본문을 문자열로 읽으므로, 애플리케이션에서도
+인증 확인 후 `/api/`의 요청 본문을 최대 8MiB로 제한합니다. 길이를 알 수 없는 전송에도 같은 제한을
+적용합니다. 이미지 멀티파트 업로드는 기존 10MB 설정을 사용합니다.
 
 ## API 요약
 

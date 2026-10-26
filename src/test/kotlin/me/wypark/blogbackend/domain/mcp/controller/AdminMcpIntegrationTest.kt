@@ -14,6 +14,7 @@ import me.wypark.blogbackend.domain.post.repository.PostRepository
 import me.wypark.blogbackend.domain.user.entity.Member
 import me.wypark.blogbackend.domain.user.entity.Role
 import me.wypark.blogbackend.domain.user.repository.MemberRepository
+import me.wypark.blogbackend.global.security.ApiRequestBodyLimitFilter
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
@@ -33,6 +34,11 @@ import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 import java.time.Duration
 import java.time.Instant
 import java.time.temporal.ChronoUnit
+import java.io.ByteArrayInputStream
+import java.net.URI
+import java.net.http.HttpClient
+import java.net.http.HttpRequest
+import java.net.http.HttpResponse
 import java.util.UUID
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -212,6 +218,36 @@ class AdminMcpIntegrationTest {
             val result = client.callTool(McpSchema.CallToolRequest("blog_list_posts", mapOf("size" to 1)))
             assertEquals(false, result.isError())
         }
+    }
+
+    @Test
+    fun `MCP and public JSON reject oversized requests with and without a declared length`() {
+        val token = issue().token
+        val oversized = ByteArray(ApiRequestBodyLimitFilter.MAX_BODY_BYTES + 1) { ' '.code.toByte() }
+        val request = { post(MCP).header("Authorization", "Bearer $token").accept(ACCEPT)
+            .contentType(MediaType.APPLICATION_JSON).content(oversized) }
+
+        mvc.perform(post(MCP).accept(ACCEPT).contentType(MediaType.APPLICATION_JSON).content(oversized))
+            .andExpect(status().isUnauthorized)
+        mvc.perform(request()).andExpect(status().isPayloadTooLarge)
+            .andExpect(jsonPath("$.code").value("PAYLOAD_TOO_LARGE"))
+        val streamed = HttpRequest.newBuilder(URI.create("http://localhost:$port$MCP"))
+            .header("Authorization", "Bearer $token")
+            .header("Accept", ACCEPT)
+            .header("Content-Type", MediaType.APPLICATION_JSON_VALUE)
+            .POST(HttpRequest.BodyPublishers.ofInputStream { ByteArrayInputStream(oversized) })
+            .build()
+        val response = HttpClient.newHttpClient().send(streamed, HttpResponse.BodyHandlers.ofString())
+        assertEquals(413, response.statusCode())
+        assertEquals("PAYLOAD_TOO_LARGE", mapper.readTree(response.body())["code"].asText())
+
+        val publicJson = HttpRequest.newBuilder(URI.create("http://localhost:$port/api/auth/login"))
+            .header("Content-Type", MediaType.APPLICATION_JSON_VALUE)
+            .POST(HttpRequest.BodyPublishers.ofInputStream { ByteArrayInputStream(oversized) })
+            .build()
+        val publicResponse = HttpClient.newHttpClient().send(publicJson, HttpResponse.BodyHandlers.ofString())
+        assertEquals(413, publicResponse.statusCode())
+        assertEquals("PAYLOAD_TOO_LARGE", mapper.readTree(publicResponse.body())["code"].asText())
     }
 
     private fun admin(): Member = members.save(Member(

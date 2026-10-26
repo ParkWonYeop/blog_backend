@@ -11,6 +11,7 @@ import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.data.domain.PageRequest
+import org.springframework.data.domain.Sort
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.transaction.annotation.Transactional
 import kotlin.test.assertEquals
@@ -64,5 +65,8 @@ class PostSearchIntegrationTest {
         assertEquals(1L, result.totalElements)
         assertEquals("kotlin-architecture", result.single().slug)
         assertEquals("Backend", result.single().categoryName)
+
+        val untrustedSort = postService.getPosts(PageRequest.of(0, 10, Sort.by("id) DESC, (SELECT 1)")))
+        assertEquals("kotlin-architecture", untrustedSort.single().slug)
     }
 }

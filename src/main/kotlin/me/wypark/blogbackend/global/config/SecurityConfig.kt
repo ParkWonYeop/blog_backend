@@ -3,6 +3,7 @@ package me.wypark.blogbackend.global.config
 import com.fasterxml.jackson.databind.ObjectMapper
 import jakarta.servlet.http.HttpServletResponse
 import me.wypark.blogbackend.global.common.ApiResponse
+import me.wypark.blogbackend.global.security.ApiRequestBodyLimitFilter
 import me.wypark.blogbackend.global.security.JwtAuthenticationFilter
 import me.wypark.blogbackend.global.security.McpAuthenticationFilter
 import me.wypark.blogbackend.global.security.RequestRateLimitFilter
@@ -17,6 +18,7 @@ import org.springframework.security.config.annotation.authentication.configurati
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity
 import org.springframework.security.config.http.SessionCreationPolicy
 import org.springframework.security.web.SecurityFilterChain
+import org.springframework.security.web.access.intercept.AuthorizationFilter
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter
 import org.springframework.web.filter.CorsFilter
 import java.nio.charset.StandardCharsets
@@ -100,6 +102,7 @@ class SecurityConfig(
             }
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter::class.java)
             .addFilterAfter(mcpAuthenticationFilter, JwtAuthenticationFilter::class.java)
+            .addFilterAfter(ApiRequestBodyLimitFilter(objectMapper), AuthorizationFilter::class.java)
 
         return http.build()
     }
