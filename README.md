@@ -202,10 +202,100 @@ curl -X POST http://localhost:8080/api/admin/posts \
   }'
 ```
 
+## 관리자 MCP 연결
+
+관리자 화면의 **MCP 연결**(`/admin/mcp`)에서 연결 키를 발급하면 Codex·Claude Code 등에서 블로그를
+관리할 수 있습니다. 서버 주소는 `https://blogserver.wypark.me/api/admin/mcp`이며 로컬에서는
+`http://localhost:8080/api/admin/mcp`를 사용합니다. 공식 MCP Java SDK 0.18.3의 stateless Streamable HTTP
+전송을 사용하며 `2025-03-26`, `2025-06-18`, `2025-11-25` 프로토콜을 지원합니다.
+
+### 연결 키
+
+1. 이메일 인증을 마친 관리자 계정으로 로그인하고 **관리자 → MCP 연결**을 엽니다.
+2. 앱 이름, 권한, 유효 기간(1–365일, 기본 90일)을 지정합니다. 기본 권한은 **읽기 전용**입니다.
+3. 발급 직후 한 번 표시되는 키를 복사해 클라이언트 실행 환경의 `BLOG_MCP_TOKEN`에 보관합니다.
+4. 사용을 끝낸 키는 같은 화면에서 폐기합니다. 만료·폐기되거나 발급자의 관리자 권한/이메일 인증이
+   해제되면 다음 요청부터 거절됩니다.
+
+키는 `Authorization: Bearer <연결 키>`로만 전달합니다. DB에는 SHA-256 해시와 표시용 접두사만 저장하며,
+전체 키는 다시 조회할 수 없습니다. MCP 키로 일반 관리자 REST API나 다른 연결 키를 관리할 수 없습니다.
+일반 로그인 JWT도 MCP 연결 키를 대신할 수 없습니다. 키 발급·목록·폐기는 기존 관리자 JWT를 사용합니다.
+
+### Codex
+
+Codex를 실행하는 환경에서 `BLOG_MCP_TOKEN`을 설정한 뒤 다음 명령으로 서버를 등록합니다.
+실제 키를 명령이나 설정 파일에 직접 넣지 않습니다.
+
+```bash
+codex mcp add blog-admin \
+  --url https://blogserver.wypark.me/api/admin/mcp \
+  --bearer-token-env-var BLOG_MCP_TOKEN
+```
+
+설정 파일을 직접 편집한다면 `~/.codex/config.toml`에 다음 내용을 추가합니다.
+
+```toml
+[mcp_servers.blog-admin]
+url = "https://blogserver.wypark.me/api/admin/mcp"
+bearer_token_env_var = "BLOG_MCP_TOKEN"
+```
+
+데스크톱 앱도 자신의 실행 환경에서 해당 변수를 읽을 수 있어야 합니다.
+[Codex 공식 MCP 문서](https://learn.chatgpt.com/docs/extend/mcp)를 참고하세요.
+
+### Claude Code
+
+프로젝트의 `.mcp.json`에 다음 서버 항목을 추가하고, `BLOG_MCP_TOKEN`이 설정된 환경에서 Claude Code를
+시작합니다. `${BLOG_MCP_TOKEN}`은 아래처럼 문자 그대로 저장해 실행 시 환경 변수로 확장합니다.
+
+```json
+{
+  "mcpServers": {
+    "blog-admin": {
+      "type": "http",
+      "url": "https://blogserver.wypark.me/api/admin/mcp",
+      "headers": { "Authorization": "Bearer ${BLOG_MCP_TOKEN}" }
+    }
+  }
+}
+```
+
+`/mcp`에서 연결 상태를 확인합니다.
+[Claude Code 공식 MCP 문서](https://code.claude.com/docs/en/mcp#environment-variable-expansion-in-mcp-json)
+에 환경 변수 설정 방법이 나와 있습니다.
+
+### 제공 도구와 동작
+
+| 대상 | 읽기 도구 | 쓰기 도구 (`READ_WRITE` 필요) |
+| --- | --- | --- |
+| 게시글 | `blog_list_posts`, `blog_get_post` | `blog_create_post`, `blog_update_post`, `blog_delete_post` |
+| 카테고리 | `blog_list_categories` | `blog_create_category`, `blog_update_category`, `blog_delete_category` |
+| 댓글 | `blog_list_comments` | `blog_create_comment`, `blog_delete_comment` |
+| 프로필 | `blog_get_profile` | `blog_update_profile` |
+
+조회 목록은 0부터 시작하는 `page`와 최대 100인 `size`를 받습니다. 관리자 게시글 상세 조회는 조회수를
+올리지 않으며 수정에 필요한 `categoryId`와 `tags`를 포함합니다. 작성은 즉시 공개되고 수정은 전달한
+내용으로 교체됩니다. 기존 도구를 재사용하므로 글 삭제 시 댓글·이미지, 카테고리 삭제 시 하위 카테고리,
+댓글 삭제 시 답글도 함께 처리됩니다. 본문·프로필에서 제거한 이미지는 기존 관리자 화면과 동일하게
+삭제됩니다. 수정 전 상세 내용을 읽고 유지할 필드를 함께 전달하세요.
+
+삭제 도구는 사용자의 승인 이후 `confirm: true`를 전달해야 실행됩니다. 이 인자는 클라이언트의 실제
+사용자 승인 여부를 증명하지 않으므로 클라이언트의 도구 승인 설정도 유지하세요. 읽기 전용 권한은
+도구 설명과 별개로 서버에서 강제하며, 쓰기 성공 로그에는 도구 이름과 키 ID만 기록합니다.
+MCP 응답만 표준 JSON-RPC 형식을 사용하고 기존 REST API의 `ApiResponse` 계약은 유지합니다.
+
+배포 시 Flyway가 `mcp_key` 테이블과 인덱스를 추가합니다. 새 서버 환경 변수는 필요 없습니다.
+리버스 프록시는 MCP 경로의 POST, Authorization, Accept, MCP-Protocol-Version 헤더를 전달해야 합니다.
+허용 Origin은 기존 `blog.cors.allowed-origins` 설정을 따릅니다. 브라우저 기반 클라이언트에서 필요한
+Origin만 추가하세요. 이 연결은 Bearer 키를 지원하는 클라이언트용이며 OAuth 로그인은 제공하지 않습니다.
+
 ## API 요약
 
 | Method | Endpoint | 인증 | 설명 |
 | --- | --- | --- | --- |
+| `POST` | `/api/admin/mcp` | MCP 연결 키 | MCP 초기화·도구 조회·호출 |
+| `GET`, `POST` | `/api/admin/mcp/keys` | 관리자 JWT | 내 연결 키 목록·발급 |
+| `DELETE` | `/api/admin/mcp/keys/{id}` | 관리자 JWT | 내 연결 키 폐기 |
 | `POST` | `/api/auth/signup` | 공개 | 회원가입 및 인증 메일 발송 |
 | `POST` | `/api/auth/verify` | 공개 | 이메일 인증 |
 | `POST` | `/api/auth/login` | 공개 | Access Token 응답과 HttpOnly Refresh 쿠키 발급 |

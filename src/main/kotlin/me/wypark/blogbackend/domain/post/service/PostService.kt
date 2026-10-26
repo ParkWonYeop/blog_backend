@@ -1,4 +1,5 @@
 package me.wypark.blogbackend.domain.post.service
+import me.wypark.blogbackend.domain.post.dto.AdminPostResponse
 import me.wypark.blogbackend.domain.post.dto.PostResponse
 import me.wypark.blogbackend.domain.post.dto.PostSaveRequest
 import me.wypark.blogbackend.domain.post.dto.PostSummaryResponse
@@ -38,6 +39,11 @@ class PostService(
     fun getPosts(pageable: Pageable): Page<PostSummaryResponse> {
         return postRepository.search(null, null, null, pageable).map(PostSummaryResponse::from)
     }
+
+    fun getPostForAdmin(id: Long): AdminPostResponse = AdminPostResponse.from(
+        postRepository.findByIdOrNull(id)
+            ?: throw BusinessException.notFound("존재하지 않는 게시글입니다.")
+    )
 
     @Transactional
     fun getPostBySlug(slug: String, viewerId: String): PostResponse {

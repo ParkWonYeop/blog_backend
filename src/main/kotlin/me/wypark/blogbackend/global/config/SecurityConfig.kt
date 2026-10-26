@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import jakarta.servlet.http.HttpServletResponse
 import me.wypark.blogbackend.global.common.ApiResponse
 import me.wypark.blogbackend.global.security.JwtAuthenticationFilter
+import me.wypark.blogbackend.global.security.McpAuthenticationFilter
 import me.wypark.blogbackend.global.security.RequestRateLimitFilter
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
@@ -26,6 +27,7 @@ class SecurityConfig(
     private val corsFilter: CorsFilter,
     private val requestRateLimitFilter: RequestRateLimitFilter,
     private val jwtAuthenticationFilter: JwtAuthenticationFilter,
+    private val mcpAuthenticationFilter: McpAuthenticationFilter,
     private val objectMapper: ObjectMapper
 ) {
 
@@ -91,11 +93,13 @@ class SecurityConfig(
 
                 auth.requestMatchers("/api/comments/**").permitAll()
 
+                auth.requestMatchers(McpAuthenticationFilter.ENDPOINT).hasAuthority("MCP_ACCESS")
                 auth.requestMatchers("/api/admin/**").hasAuthority("ROLE_ADMIN")
 
                 auth.anyRequest().authenticated()
             }
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter::class.java)
+            .addFilterAfter(mcpAuthenticationFilter, JwtAuthenticationFilter::class.java)
 
         return http.build()
     }

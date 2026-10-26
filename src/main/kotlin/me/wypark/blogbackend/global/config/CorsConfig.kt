@@ -20,7 +20,7 @@ class CorsConfig(
 
         properties.allowedOrigins.forEach(config::addAllowedOrigin)
 
-        config.allowedHeaders = listOf("Authorization", "Content-Type", "Accept")
+        config.allowedHeaders = listOf("Authorization", "Content-Type", "Accept", "MCP-Protocol-Version")
         config.allowedMethods = listOf("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
         config.maxAge = 3_600
 

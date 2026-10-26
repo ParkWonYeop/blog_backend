@@ -15,6 +15,9 @@ class BlogProfileService(
     private val imageService: ImageService
 ) {
 
+    fun getProfileForAdmin(): ProfileResponse = profileRepository.findFirstByOrderByIdAsc()
+        ?.let(ProfileResponse::from) ?: ProfileResponse(DEFAULT_NAME, DEFAULT_BIO, null, null, null)
+
     @Transactional
     fun getProfile(): ProfileResponse {
         return ProfileResponse.from(findOrCreateDefaultProfile())

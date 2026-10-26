@@ -94,6 +94,8 @@ class RequestRateLimitFilter(
         val method = request.method
         val path = request.requestURI
         return when {
+            path == "/api/admin/mcp" -> RateRule("admin-mcp", 120, 60)
+            path == "/api/admin/mcp/keys" && method == "POST" -> RateRule("mcp-key-issue", 10, 60)
             method == "POST" && path == "/api/auth/login" -> RateRule("login", 10, 60)
             method == "POST" && path == "/api/auth/signup" -> RateRule("signup", 5, 3_600)
             method == "POST" && path == "/api/auth/verify" -> RateRule("verify", 10, 60)
